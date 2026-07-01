@@ -1,611 +1,845 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CECAPE - Cadastro</title>
-
-  <!-- SweetAlert2 CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-  <!-- Google Identity Services / Client -->
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-
-  <style>
-    :root {
-      --color-primary: #1a73e8;
-      --color-primary-dark: #1557b0;
-      --color-success: #2e7d32;
-      --color-error: #c62828;
-      --color-warning: #f9a825;
-      --color-info: #0277bd;
-      --color-bg: #f4f6f8;
-      --color-surface: #ffffff;
-      --color-text: #202124;
-      --color-muted: #5f6368;
-      --color-border: #dadce0;
-      --radius: 10px;
-      --shadow: 0 2px 8px rgba(0,0,0,0.08);
-    }
-
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      font-family: 'Segoe UI', Roboto, Arial, sans-serif;
-      background: var(--color-bg);
-      color: var(--color-text);
-      line-height: 1.5;
-    }
-
-    header {
-      background: var(--color-primary);
-      color: #fff;
-      padding: 18px 24px;
-      box-shadow: var(--shadow);
-    }
-
-    header h1 { margin: 0; font-size: 1.4rem; }
-    header p { margin: 4px 0 0; opacity: 0.9; font-size: 0.9rem; }
-
-    main {
-      max-width: 760px;
-      margin: 24px auto;
-      padding: 0 16px;
-    }
-
-    .card {
-      background: var(--color-surface);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 24px;
-      margin-bottom: 20px;
-    }
-
-    .card h2 {
-      margin: 0 0 16px;
-      font-size: 1.1rem;
-      color: var(--color-primary-dark);
-    }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-
-    .form-group { display: flex; flex-direction: column; }
-    .form-group.full { grid-column: 1 / -1; }
-
-    label {
-      font-size: 0.85rem;
-      color: var(--color-muted);
-      margin-bottom: 6px;
-      font-weight: 600;
-    }
-
-    input, select, textarea {
-      padding: 10px 12px;
-      border: 1px solid var(--color-border);
-      border-radius: 8px;
-      font-size: 0.95rem;
-      background: #fff;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-
-    input:focus, select:focus, textarea:focus {
-      outline: none;
-      border-color: var(--color-primary);
-      box-shadow: 0 0 0 3px rgba(26,115,232,0.15);
-    }
-
-    .actions {
-      display: flex;
-      gap: 12px;
-      margin-top: 20px;
-      flex-wrap: wrap;
-    }
-
-    button {
-      padding: 10px 20px;
-      border: none;
-      border-radius: 8px;
-      font-size: 0.95rem;
-      cursor: pointer;
-      transition: background 0.2s, transform 0.1s;
-      font-weight: 600;
-    }
-
-    button:active { transform: translateY(1px); }
-
-    .btn-primary { background: var(--color-primary); color: #fff; }
-    .btn-primary:hover { background: var(--color-primary-dark); }
-
-    .btn-secondary { background: #e8eaed; color: var(--color-text); }
-    .btn-secondary:hover { background: #d2d5d9; }
-
-    .btn-danger { background: var(--color-error); color: #fff; }
-    .btn-danger:hover { background: #a91e1e; }
-
-    .toggle-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 16px;
-    }
-
-    .toggle-row input[type=checkbox] { width: 18px; height: 18px; }
-
-    #statusArea { min-height: 20px; }
-
-    @media (max-width: 600px) {
-      .form-grid { grid-template-columns: 1fr; }
-    }
-
-    /* SweetAlert2 custom theme */
-    .swal2-popup {
-      border-radius: 12px !important;
-      font-family: 'Segoe UI', Roboto, Arial, sans-serif !important;
-    }
-    .swal2-confirm {
-      background: var(--color-primary) !important;
-      border-radius: 8px !important;
-      font-weight: 600 !important;
-    }
-    .swal2-cancel {
-      background: #e8eaed !important;
-      color: var(--color-text) !important;
-      border-radius: 8px !important;
-      font-weight: 600 !important;
-    }
-    .swal2-icon.swal2-error { border-color: var(--color-error) !important; color: var(--color-error) !important; }
-    .swal2-icon.swal2-success { border-color: var(--color-success) !important; color: var(--color-success) !important; }
-    .swal2-icon.swal2-warning { border-color: var(--color-warning) !important; color: var(--color-warning) !important; }
-    .swal2-icon.swal2-info { border-color: var(--color-info) !important; color: var(--color-info) !important; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CECAPE - Cadastro</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    min-height: 100vh;
+    padding: 20px;
+    color: #333;
+  }
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    overflow: hidden;
+  }
+  .header {
+    background: linear-gradient(135deg, #1e3c72, #2a5298);
+    color: #fff;
+    padding: 25px;
+    text-align: center;
+  }
+  .header h1 { font-size: 1.8em; margin-bottom: 5px; }
+  .header p { opacity: 0.9; font-size: 0.95em; }
+  .content { padding: 30px; }
+  .form-group { margin-bottom: 18px; }
+  label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #1e3c72;
+    font-size: 0.9em;
+  }
+  .hint { font-size: 0.78em; color: #888; font-weight: normal; margin-top: 3px; }
+  input, select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 1em;
+    transition: border-color 0.2s;
+  }
+  input:focus, select:focus { outline: none; border-color: #2a5298; }
+  input.invalid, select.invalid { border-color: #e74c3c; }
+  .error-msg { color: #e74c3c; font-size: 0.8em; margin-top: 4px; display: none; }
+  .error-msg.show { display: block; }
+  .row { display: flex; gap: 15px; flex-wrap: wrap; }
+  .row .form-group { flex: 1; min-width: 180px; }
+  .btn {
+    display: inline-block;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-primary { background: #2a5298; color: #fff; width: 100%; }
+  .btn-primary:hover { background: #1e3c72; }
+  .btn-primary:disabled { background: #aaa; cursor: not-allowed; }
+  .btn-google {
+    background: #fff; color: #333; border: 2px solid #ddd;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    width: 100%;
+  }
+  .btn-google:hover { background: #f5f5f5; }
+  .btn-google img { width: 20px; height: 20px; }
+  .status {
+    padding: 12px 16px; border-radius: 8px; margin: 15px 0;
+    font-size: 0.9em; display: none;
+  }
+  .status.show { display: block; }
+  .status.info { background: #e7f3fe; color: #1e3c72; border-left: 4px solid #2a5298; }
+  .status.success { background: #e7f9e7; color: #1e7a1e; border-left: 4px solid #27ae60; }
+  .status.error { background: #fdecea; color: #c0392b; border-left: 4px solid #e74c3c; }
+  .status.warning { background: #fff8e1; color: #b8860b; border-left: 4px solid #f1c40f; }
+  .spinner {
+    display: inline-block; width: 18px; height: 18px;
+    border: 3px solid rgba(255,255,255,0.3);
+    border-top-color: #fff; border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle; margin-right: 8px;
+  }
+  .spinner.dark { border-color: rgba(42,82,152,0.3); border-top-color: #2a5298; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .hidden { display: none !important; }
+  .user-info {
+    display: flex; align-items: center; justify-content: space-between;
+    background: #f0f4ff; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px;
+  }
+  .user-info span { font-weight: 600; color: #1e3c72; }
+  .btn-logout { background: transparent; border: none; color: #e74c3c; cursor: pointer; font-weight: 600; }
+  .debug-panel {
+    position: fixed; bottom: 0; right: 0; width: 400px; max-height: 300px;
+    background: #1e1e1e; color: #0f0; font-family: monospace; font-size: 0.78em;
+    padding: 10px; overflow-y: auto; z-index: 9999; display: none;
+    border-top-left-radius: 8px; box-shadow: -2px -2px 10px rgba(0,0,0,0.5);
+  }
+  .debug-panel.show { display: block; }
+  .debug-panel .debug-line { padding: 2px 0; border-bottom: 1px solid #333; }
+  .debug-panel .debug-line.err { color: #ff6b6b; }
+  .debug-panel .debug-line.warn { color: #ffd93d; }
+  .debug-panel .debug-line.info { color: #6bcBff; }
+  .debug-toggle-hint {
+    position: fixed; bottom: 5px; left: 5px; font-size: 0.7em; color: rgba(255,255,255,0.5);
+    z-index: 9998; pointer-events: none;
+  }
+  .footer { text-align: center; padding: 15px; color: #888; font-size: 0.8em; }
+  @media (max-width: 600px) {
+    .row { flex-direction: column; }
+    .debug-panel { width: 100%; }
+  }
+</style>
 </head>
 <body>
-  <header>
-    <h1>CECAPE - Cadastro de Participantes</h1>
-    <p>Preencha os dados abaixo para registrar na planilha do Google.</p>
-  </header>
+<div class="container">
+  <div class="header">
+    <h1>CECAPE</h1>
+    <p>Cadastro de Professores - Secretaria de Educação</p>
+  </div>
+  <div class="content">
+    <!-- Login -->
+    <div id="loginSection">
+      <div id="loginStatus" class="status info show">
+        Faça login com sua conta @scseduca.com.br para continuar.
+      </div>
+      <button id="googleLoginBtn" class="btn btn-google">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+        Entrar com Google
+      </button>
+      <div style="margin-top:15px;">
+        <button id="manualModeBtn" class="btn" style="background:#7f8c8d;color:#fff;width:100%;">
+          Modo Manual (Offline)
+        </button>
+      </div>
+    </div>
 
-  <main>
-    <div class="card">
-      <h2>Dados do Cadastro</h2>
-
-      <div class="toggle-row">
-        <input type="checkbox" id="manualMode" />
-        <label for="manualMode" style="margin:0;">Modo manual (digitar escola em vez de selecionar)</label>
+    <!-- Formulário -->
+    <div id="formSection" class="hidden">
+      <div class="user-info">
+        <span id="userEmail"></span>
+        <button id="logoutBtn" class="btn-logout">Sair</button>
       </div>
 
-      <form id="cadastroForm">
-        <div class="form-grid">
+      <div id="formStatus" class="status"></div>
+
+      <form id="cecapeForm" autocomplete="off">
+        <div class="form-group">
+          <label for="nome">Nome Completo *</label>
+          <input type="text" id="nome" name="nome" placeholder="Ex: Maria Aparecida Silva Santos" maxlength="100">
+          <div class="hint">Digite nome e sobrenome completos, sem abreviações.</div>
+          <div class="error-msg" id="nomeError"></div>
+        </div>
+
+        <div class="form-group">
+          <label for="email">E-mail Institucional *</label>
+          <input type="email" id="email" name="email" placeholder="Ex: maria.santos@scseduca.com.br">
+          <div class="hint">Apenas e-mails @scseduca.com.br (não aceita eme.*, emef.*, emei.*, emi.*).</div>
+          <div class="error-msg" id="emailError"></div>
+        </div>
+
+        <div class="row">
           <div class="form-group">
-            <label for="nome">Nome completo *</label>
-            <input type="text" id="nome" name="nome" required />
+            <label for="matricula">Matrícula *</label>
+            <input type="text" id="matricula" name="matricula" placeholder="Ex: 12345 ou 12345-6" maxlength="7">
+            <div class="hint">5 dígitos + 1 dígito verificador opcional.</div>
+            <div class="error-msg" id="matriculaError"></div>
           </div>
-
           <div class="form-group">
-            <label for="cpf">CPF *</label>
-            <input type="text" id="cpf" name="cpf" placeholder="000.000.000-00" required />
-          </div>
-
-          <div class="form-group">
-            <label for="email">E-mail *</label>
-            <input type="email" id="email" name="email" required />
-          </div>
-
-          <div class="form-group">
-            <label for="telefone">Telefone</label>
-            <input type="text" id="telefone" name="telefone" placeholder="(00) 00000-0000" />
-          </div>
-
-          <div class="form-group" id="escolaSelectGroup">
-            <label for="escola">Escola *</label>
-            <select id="escola" name="escola" required>
-              <option value="">Carregando escolas...</option>
-            </select>
-          </div>
-
-          <div class="form-group full" id="escolaManualGroup" style="display:none;">
-            <label for="escolaManual">Escola (manual) *</label>
-            <input type="text" id="escolaManual" name="escolaManual" />
-          </div>
-
-          <div class="form-group">
-            <label for="turma">Turma</label>
-            <input type="text" id="turma" name="turma" />
-          </div>
-
-          <div class="form-group">
-            <label for="turno">Turno</label>
-            <select id="turno" name="turno">
-              <option value="">Selecione</option>
-              <option value="Manhã">Manhã</option>
-              <option value="Tarde">Tarde</option>
-              <option value="Noite">Noite</option>
-              <option value="Integral">Integral</option>
-            </select>
-          </div>
-
-          <div class="form-group full">
-            <label for="observacoes">Observações</label>
-            <textarea id="observacoes" name="observacoes" rows="3"></textarea>
+            <label for="telefone">Telefone *</label>
+            <input type="text" id="telefone" name="telefone" placeholder="Ex: (11) 98765-4321" maxlength="15">
+            <div class="hint">Formato (xx) xxxxx-xxxx.</div>
+            <div class="error-msg" id="telefoneError"></div>
           </div>
         </div>
 
-        <div class="actions">
-          <button type="submit" class="btn-primary">Salvar</button>
-          <button type="button" class="btn-secondary" id="btnLimpar">Limpar</button>
-          <button type="button" class="btn-danger" id="btnResetar">Resetar tudo</button>
+        <div class="form-group">
+          <label for="escola">Escola *</label>
+          <select id="escola" name="escola" disabled>
+            <option value="">Carregando escolas...</option>
+          </select>
+          <div class="hint">Selecione a escola da lista carregada da planilha.</div>
+          <div class="error-msg" id="escolaError"></div>
         </div>
+
+        <div class="form-group">
+          <label for="periodo">Período *</label>
+          <select id="periodo" name="periodo">
+            <option value="">Selecione...</option>
+            <option value="MANHÃ">MANHÃ</option>
+            <option value="TARDE">TARDE</option>
+          </select>
+          <div class="error-msg" id="periodoError"></div>
+        </div>
+
+        <div class="row">
+          <div class="form-group">
+            <label for="horario1">Horário 1 *</label>
+            <input type="text" id="horario1" name="horario1" placeholder="Ex: 07h30" maxlength="5">
+            <div class="hint">Formato HHhMM (06-23h / 00-59min).</div>
+            <div class="error-msg" id="horario1Error"></div>
+          </div>
+          <div class="form-group">
+            <label for="horario2">Horário 2 *</label>
+            <input type="text" id="horario2" name="horario2" placeholder="Ex: 08h20" maxlength="5">
+            <div class="error-msg" id="horario2Error"></div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="form-group">
+            <label for="horario3">Horário 3 *</label>
+            <input type="text" id="horario3" name="horario3" placeholder="Ex: 09h10" maxlength="5">
+            <div class="error-msg" id="horario3Error"></div>
+          </div>
+          <div class="form-group">
+            <label for="horario4">Horário 4 *</label>
+            <input type="text" id="horario4" name="horario4" placeholder="Ex: 10h00" maxlength="5">
+            <div class="error-msg" id="horario4Error"></div>
+          </div>
+        </div>
+
+        <button type="submit" id="submitBtn" class="btn btn-primary">Salvar Cadastro</button>
       </form>
-
-      <div id="statusArea"></div>
     </div>
-  </main>
 
-  <script>
-    // ===== Configurações do Google =====
-    const GOOGLE_CONFIG = {
-      clientId: 'SEU_CLIENT_ID.apps.googleusercontent.com',
-      scriptUrl: 'https://script.google.com/macros/s/SUA_DEPLOYMENT_ID/exec',
-      scope: 'https://www.googleapis.com/auth/spreadsheets'
-    };
+    <div class="footer">
+      CECAPE © 2025 - Secretaria de Educação<br>
+      Pressione F12 para abrir o painel de debug
+    </div>
+  </div>
+</div>
 
-    // ===== Estado da aplicação =====
-    let escolasCarregadas = [];
-    let tokenGoogle = null;
+<div id="debugPanel" class="debug-panel"></div>
+<div class="debug-toggle-hint">F12: debug</div>
 
-    // ===== SweetAlert2 helpers =====
-    const SwalTheme = {
-      confirmButtonColor: '#1a73e8',
-      cancelButtonColor: '#e8eaed',
-      customClass: {
-        confirmButton: 'swal2-confirm',
-        cancelButton: 'swal2-cancel',
-        popup: 'swal2-popup'
-      },
-      buttonsStyling: true
-    };
+<script src="https://apis.google.com/js/api.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+/* ============================================================
+   CECAPE - Configurações
+   ============================================================ */
+const CONFIG = {
+  CLIENT_ID: '367248828417-n4l55p0dloon7uf71erubrmfouegq16u.apps.googleusercontent.com',
+  SPREADSHEET_REGISTROS: '1B6xRr_WDCTkWEfsaeiEPdgDILuDwaQd1oZQEsQdF6GA',
+  SPREADSHEET_ESCOLAS: '1VBbvfrZPQZ96e7hzpUnFG_GPfjA3I-mLKI-RgoP8OlA',
+  SCOPE: 'https://www.googleapis.com/auth/spreadsheets',
+  DISCOVERY_DOCS: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
+  MAX_RETRIES: 3,
+  RETRY_DELAY: 1500
+};
 
-    function showStatus(message, type = 'info', opts = {}) {
-      const iconMap = { error: 'error', success: 'success', warning: 'warning', info: 'info' };
-      const icon = iconMap[type] || 'info';
-      const useToast = opts.toast !== false && type !== 'error';
-
-      if (useToast) {
-        return Swal.fire({
-          ...SwalTheme,
-          toast: true,
-          position: 'top-end',
-          icon: icon,
-          title: message,
-          showConfirmButton: false,
-          timer: 3500,
-          timerProgressBar: true,
-          animation: true,
-          didOpen: (toast) => {
-            toast.addEventListener('mouseenter', Swal.stopTimer);
-            toast.addEventListener('mouseleave', Swal.resumeTimer);
-          }
-        });
+/* ============================================================
+   Sistema de Debug
+   ============================================================ */
+const Debug = {
+  enabled: false,
+  panel: null,
+  init() {
+    this.panel = document.getElementById('debugPanel');
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'F12') {
+        e.preventDefault();
+        this.toggle();
       }
+    });
+    this.log('Debug inicializado', 'info');
+  },
+  toggle() {
+    this.enabled = !this.enabled;
+    this.panel.classList.toggle('show', this.enabled);
+    if (this.enabled) this.log('Painel de debug ativado', 'info');
+  },
+  log(msg, type = 'info') {
+    const ts = new Date().toLocaleTimeString();
+    const line = document.createElement('div');
+    line.className = 'debug-line ' + type;
+    line.textContent = `[${ts}] ${msg}`;
+    this.panel.appendChild(line);
+    this.panel.scrollTop = this.panel.scrollHeight;
+    console.log(`%c[CECAPE ${type.toUpperCase()}]`, type === 'err' ? 'color:red' : type === 'warn' ? 'color:orange' : 'color:blue', msg);
+  }
+};
 
-      return Swal.fire({
-        ...SwalTheme,
-        icon: icon,
-        title: opts.title || defaultTitle(type),
-        text: message,
-        confirmButtonText: opts.confirmText || 'OK',
-        animation: true
-      });
+/* ============================================================
+   Estado Global
+   ============================================================ */
+const State = {
+  accessToken: null,
+  userEmail: null,
+  manualMode: false,
+  escolas: [],
+  existingRecords: [],
+  gisReady: false,
+  gapiReady: false,
+  tokenClient: null
+};
+
+/* ============================================================
+   Utilitários
+   ============================================================ */
+function showStatus(msg, type = 'info', targetId = 'formStatus') {
+  const el = document.getElementById(targetId);
+  el.className = 'status show ' + type;
+  el.innerHTML = msg;
+}
+function clearStatus(targetId = 'formStatus') {
+  const el = document.getElementById(targetId);
+  el.className = 'status';
+  el.innerHTML = '';
+}
+function showFieldError(fieldId, msg) {
+  const input = document.getElementById(fieldId);
+  const err = document.getElementById(fieldId + 'Error');
+  if (msg) {
+    input.classList.add('invalid');
+    err.textContent = msg;
+    err.classList.add('show');
+  } else {
+    input.classList.remove('invalid');
+    err.classList.remove('show');
+  }
+}
+function clearAllErrors() {
+  ['nome','email','matricula','telefone','escola','periodo','horario1','horario2','horario3','horario4']
+    .forEach(id => showFieldError(id, ''));
+}
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function withRetry(fn, label = 'operação') {
+  let lastErr;
+  for (let attempt = 1; attempt <= CONFIG.MAX_RETRIES; attempt++) {
+    try {
+      Debug.log(`${label}: tentativa ${attempt}/${CONFIG.MAX_RETRIES}`, 'info');
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      Debug.log(`${label} falhou (tentativa ${attempt}): ${err.message || err}`, 'warn');
+      if (attempt < CONFIG.MAX_RETRIES) await sleep(CONFIG.RETRY_DELAY * attempt);
     }
+  }
+  throw lastErr;
+}
 
-    function defaultTitle(type) {
-      switch (type) {
-        case 'error': return 'Erro';
-        case 'success': return 'Sucesso';
-        case 'warning': return 'Atenção';
-        default: return 'Informação';
-      }
-    }
+/* ============================================================
+   Máscaras
+   ============================================================ */
+function maskTelefone(value) {
+  let v = value.replace(/\D/g, '').slice(0, 11);
+  if (v.length > 6) v = v.replace(/(\d{2})(\d{5})(\d{0,4}).*/, '($1) $2-$3');
+  else if (v.length > 2) v = v.replace(/(\d{2})(\d{0,5}).*/, '($1) $2');
+  else if (v.length > 0) v = v.replace(/(\d{0,2}).*/, '($1');
+  return v;
+}
+function maskMatricula(value) {
+  let v = value.replace(/\D/g, '').slice(0, 6);
+  if (v.length > 5) v = v.replace(/(\d{5})(\d{1}).*/, '$1-$2');
+  return v;
+}
+function maskHorario(value) {
+  let v = value.toUpperCase().replace(/[^0-9H]/g, '');
+  if (v.length === 0) return '';
+  // permite digitar números, insere 'h' após 2 dígitos
+  let nums = v.replace(/H/g, '');
+  if (nums.length > 2) {
+    v = nums.slice(0,2) + 'h' + nums.slice(2,4);
+  } else if (nums.length === 2 && !v.includes('H')) {
+    v = nums + 'h';
+  } else {
+    v = nums;
+  }
+  return v.slice(0,5);
+}
 
-    function showConfirm(title, text, opts = {}) {
-      return Swal.fire({
-        ...SwalTheme,
-        icon: 'warning',
-        title: title,
-        text: text,
-        showCancelButton: true,
-        confirmButtonText: opts.confirmText || 'Confirmar',
-        cancelButtonText: opts.cancelText || 'Cancelar',
-        reverseButtons: true,
-        animation: true
-      }).then(result => result.isConfirmed);
-    }
+/* ============================================================
+   Validações
+   ============================================================ */
+function validateNome(value) {
+  if (!value || value.trim().length < 3) return 'Informe o nome completo.';
+  const parts = value.trim().split(/\s+/);
+  if (parts.length < 2) return 'Informe nome e sobrenome (mínimo 2 nomes).';
+  for (const p of parts) {
+    if (p.length < 2) return 'Evite abreviações. Escreva o nome completo.';
+    if (/^\w\.$/.test(p)) return 'Não use abreviações com ponto.';
+  }
+  if (/\d/.test(value)) return 'Nome não pode conter números.';
+  return null;
+}
+function validateEmail(value) {
+  if (!value || !value.trim()) return 'Informe o e-mail institucional.';
+  const v = value.trim().toLowerCase();
+  if (!/^[^\s@]+@scseduca\.com\.br$/.test(v))
+    return 'Use um e-mail @scseduca.com.br válido.';
+  const prefix = v.split('@')[0];
+  if (/^(eme|emef|emei|emi)/i.test(prefix))
+    return 'E-mails de escola (eme/emef/emei/emi) não são aceitos. Use seu e-mail pessoal institucional.';
+  return null;
+}
+function validateMatricula(value) {
+  if (!value || !value.trim()) return 'Informe a matrícula.';
+  const v = value.trim().replace('-', '');
+  if (!/^\d{5}(\d{1})?$/.test(v))
+    return 'Matrícula deve ter 5 dígitos + 1 verificador opcional (ex: 12345 ou 12345-6).';
+  return null;
+}
+function validateTelefone(value) {
+  if (!value || !value.trim()) return 'Informe o telefone.';
+  const digits = value.replace(/\D/g, '');
+  if (digits.length < 10) return 'Telefone incompleto. Formato: (xx) xxxxx-xxxx.';
+  if (!/^\(\d{2}\) \d{5}-\d{4}$/.test(value.trim()))
+    return 'Formato inválido. Use (xx) xxxxx-xxxx.';
+  return null;
+}
+function validateEscola(value) {
+  if (!value) return 'Selecione uma escola.';
+  return null;
+}
+function validatePeriodo(value) {
+  if (!value) return 'Selecione o período.';
+  if (!['MANHÃ','TARDE'].includes(value)) return 'Período inválido.';
+  return null;
+}
+function validateHorario(value) {
+  if (!value || !value.trim()) return 'Informe o horário.';
+  if (!/^\d{2}h\d{2}$/.test(value.trim())) return 'Formato inválido. Use HHhMM (ex: 07h30).';
+  const [hh, mm] = value.trim().split('h').map(Number);
+  if (hh < 6 || hh > 23) return 'Hora deve estar entre 06 e 23.';
+  if (mm < 0 || mm > 59) return 'Minutos devem estar entre 00 e 59.';
+  return null;
+}
 
-    function showError(message, opts = {}) {
-      return Swal.fire({
-        ...SwalTheme,
-        icon: 'error',
-        title: opts.title || 'Erro',
-        text: message,
-        confirmButtonText: opts.confirmText || 'OK',
-        animation: true
-      });
-    }
+function validateAll() {
+  clearAllErrors();
+  let valid = true;
+  const checks = [
+    ['nome', validateNome],
+    ['email', validateEmail],
+    ['matricula', validateMatricula],
+    ['telefone', validateTelefone],
+    ['escola', validateEscola],
+    ['periodo', validatePeriodo],
+    ['horario1', validateHorario],
+    ['horario2', validateHorario],
+    ['horario3', validateHorario],
+    ['horario4', validateHorario]
+  ];
+  for (const [id, fn] of checks) {
+    const err = fn(document.getElementById(id).value);
+    if (err) { showFieldError(id, err); valid = false; }
+  }
+  return valid;
+}
 
-    function showSuccess(message, opts = {}) {
-      if (opts.modal) {
-        return Swal.fire({
-          ...SwalTheme,
-          icon: 'success',
-          title: opts.title || 'Sucesso',
-          text: message,
-          confirmButtonText: opts.confirmText || 'OK',
-          animation: true
-        });
-      }
-      return Swal.fire({
-        ...SwalTheme,
-        toast: true,
-        position: 'top-end',
-        icon: 'success',
-        title: message,
-        showConfirmButton: false,
-        timer: 3000,
-        timerProgressBar: true,
-        animation: true
-      });
-    }
-
-    function showWarning(message, opts = {}) {
-      if (opts.modal) {
-        return Swal.fire({
-          ...SwalTheme,
-          icon: 'warning',
-          title: opts.title || 'Atenção',
-          text: message,
-          confirmButtonText: opts.confirmText || 'OK',
-          animation: true
-        });
-      }
-      return Swal.fire({
-        ...SwalTheme,
-        toast: true,
-        position: 'top-end',
-        icon: 'warning',
-        title: message,
-        showConfirmButton: false,
-        timer: 3500,
-        timerProgressBar: true,
-        animation: true
-      });
-    }
-
-    function showInfo(message, opts = {}) {
-      if (opts.modal) {
-        return Swal.fire({
-          ...SwalTheme,
-          icon: 'info',
-          title: opts.title || 'Informação',
-          text: message,
-          confirmButtonText: opts.confirmText || 'OK',
-          animation: true
-        });
-      }
-      return Swal.fire({
-        ...SwalTheme,
-        toast: true,
-        position: 'top-end',
-        icon: 'info',
-        title: message,
-        showConfirmButton: false,
-        timer: 3000,
-        timerProgressBar: true,
-        animation: true
-      });
-    }
-
-    // ===== Validações =====
-    function validarCPF(cpf) {
-      cpf = cpf.replace(/[^\d]/g, '');
-      if (cpf.length !== 11) return false;
-      if (/^(\d)\1+$/.test(cpf)) return false;
-      let soma = 0, resto;
-      for (let i = 1; i <= 9; i++) soma += parseInt(cpf[i - 1]) * (11 - i);
-      resto = (soma * 10) % 11;
-      if (resto === 10) resto = 0;
-      if (resto !== parseInt(cpf[9])) return false;
-      soma = 0;
-      for (let i = 1; i <= 10; i++) soma += parseInt(cpf[i - 1]) * (12 - i);
-      resto = (soma * 10) % 11;
-      if (resto === 10) resto = 0;
-      if (resto !== parseInt(cpf[10])) return false;
-      return true;
-    }
-
-    function validarEmail(email) {
-      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    }
-
-    function validarFormulario() {
-      const nome = document.getElementById('nome').value.trim();
-      const cpf = document.getElementById('cpf').value.trim();
-      const email = document.getElementById('email').value.trim();
-      const manual = document.getElementById('manualMode').checked;
-      const escola = manual
-        ? document.getElementById('escolaManual').value.trim()
-        : document.getElementById('escola').value.trim();
-
-      if (!nome) {
-        showError('Informe o nome completo.');
-        return false;
-      }
-      if (!validarCPF(cpf)) {
-        showError('CPF inválido. Verifique o número informado.');
-        return false;
-      }
-      if (!validarEmail(email)) {
-        showError('E-mail inválido. Verifique o endereço informado.');
-        return false;
-      }
-      if (!escola) {
-        showError('Selecione ou informe a escola.');
-        return false;
-      }
-      return true;
-    }
-
-    // ===== Carregamento de escolas =====
-    async function carregarEscolas() {
-      const select = document.getElementById('escola');
+/* ============================================================
+   Google API - Inicialização
+   ============================================================ */
+function initGapiClient() {
+  return new Promise((resolve, reject) => {
+    gapi.load('client', async () => {
       try {
-        showInfo('Carregando escolas...');
-        const resp = await fetch(GOOGLE_CONFIG.scriptUrl + '?action=escolas');
-        if (!resp.ok) throw new Error('HTTP ' + resp.status);
-        const data = await resp.json();
-        escolasCarregadas = Array.isArray(data) ? data : (data.escolas || []);
-        select.innerHTML = '<option value="">Selecione a escola</option>';
-        escolasCarregadas.forEach(e => {
-          const opt = document.createElement('option');
-          opt.value = typeof e === 'string' ? e : (e.nome || e.value);
-          opt.textContent = opt.value;
-          select.appendChild(opt);
+        await gapi.client.init({
+          discoveryDocs: CONFIG.DISCOVERY_DOCS
         });
-        showSuccess('Escolas carregadas com sucesso.');
+        State.gapiReady = true;
+        Debug.log('gapi client inicializado', 'info');
+        resolve();
       } catch (err) {
-        console.error(err);
-        select.innerHTML = '<option value="">Erro ao carregar</option>';
-        showError('Não foi possível carregar a lista de escolas. Verifique sua conexão e tente novamente.');
+        Debug.log('Erro ao init gapi: ' + (err.message || err), 'err');
+        reject(err);
       }
-    }
+    });
+  });
+}
 
-    // ===== Modo manual =====
-    function alternarModoManual() {
-      const manual = document.getElementById('manualMode').checked;
-      document.getElementById('escolaSelectGroup').style.display = manual ? 'none' : 'flex';
-      document.getElementById('escolaManualGroup').style.display = manual ? 'flex' : 'none';
-      if (manual) {
-        showInfo('Modo manual ativado. Digite o nome da escola.');
-      }
-    }
-
-    // ===== Google Identity =====
-    function initGoogle() {
-      if (typeof google === 'undefined' || !google.accounts || !google.accounts.id) {
-        showWarning('Google Identity Services não disponível. Algumas funções podem não funcionar.', { modal: true });
+function initGisClient() {
+  if (!window.google || !google.accounts || !google.accounts.oauth2) {
+    Debug.log('GIS ainda não carregado, aguardando...', 'warn');
+    setTimeout(initGisClient, 300);
+    return;
+  }
+  State.tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CONFIG.CLIENT_ID,
+    scope: CONFIG.SCOPE,
+    callback: (resp) => {
+      if (resp.error) {
+        Debug.log('Erro no token GIS: ' + (resp.error_description || resp.error), 'err');
+        showStatus('Falha no login: ' + (resp.error_description || resp.error), 'error', 'loginStatus');
         return;
       }
-      google.accounts.id.initialize({
-        client_id: GOOGLE_CONFIG.clientId,
-        callback: handleCredential
-      });
+      State.accessToken = resp.access_token;
+      gapi.client.setToken({ access_token: resp.access_token });
+      Debug.log('Token obtido com sucesso', 'info');
+      onLoginSuccess();
     }
+  });
+  State.gisReady = true;
+  Debug.log('GIS client inicializado', 'info');
+}
 
-    function handleCredential(response) {
-      tokenGoogle = response.credential || null;
-      showSuccess('Autenticado com Google.');
-    }
-
-    // ===== Salvamento na planilha =====
-    async function salvarNaPlanilha(dados) {
-      const payload = {
-        action: 'salvar',
-        dados: dados
-      };
-      const resp = await fetch(GOOGLE_CONFIG.scriptUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (!resp.ok) throw new Error('HTTP ' + resp.status);
-      return await resp.json();
-    }
-
-    function coletarDados() {
-      const manual = document.getElementById('manualMode').checked;
-      return {
-        nome: document.getElementById('nome').value.trim(),
-        cpf: document.getElementById('cpf').value.trim(),
-        email: document.getElementById('email').value.trim(),
-        telefone: document.getElementById('telefone').value.trim(),
-        escola: manual
-          ? document.getElementById('escolaManual').value.trim()
-          : document.getElementById('escola').value.trim(),
-        turma: document.getElementById('turma').value.trim(),
-        turno: document.getElementById('turno').value.trim(),
-        observacoes: document.getElementById('observacoes').value.trim(),
-        token: tokenGoogle
-      };
-    }
-
-    function limparFormulario() {
-      document.getElementById('cadastroForm').reset();
-    }
-
-    // ===== Eventos =====
-    document.addEventListener('DOMContentLoaded', () => {
-      initGoogle();
-      carregarEscolas();
-
-      document.getElementById('manualMode').addEventListener('change', alternarModoManual);
-
-      document.getElementById('btnLimpar').addEventListener('click', async () => {
-        const ok = await showConfirm(
-          'Limpar formulário?',
-          'Os dados preenchidos serão removidos.'
-        );
-        if (ok) {
-          limparFormulario();
-          showSuccess('Formulário limpo.');
-        }
-      });
-
-      document.getElementById('btnResetar').addEventListener('click', async () => {
-        const ok = await showConfirm(
-          'Resetar tudo?',
-          'Isto irá limpar o formulário e recarregar as escolas. Deseja continuar?',
-          { confirmText: 'Resetar', cancelText: 'Cancelar' }
-        );
-        if (ok) {
-          limparFormulario();
-          document.getElementById('manualMode').checked = false;
-          alternarModoManual();
-          await carregarEscolas();
-          showSuccess('Tudo resetado com sucesso.');
-        }
-      });
-
-      document.getElementById('cadastroForm').addEventListener('submit', async (ev) => {
-        ev.preventDefault();
-        if (!validarFormulario()) return;
-
-        const ok = await showConfirm(
-          'Confirmar envio?',
-          'Os dados serão salvos na planilha do Google.',
-          { confirmText: 'Salvar', cancelText: 'Cancelar' }
-        );
-        if (!ok) return;
-
-        const dados = coletarDados();
-        try {
-          showInfo('Enviando dados...');
-          const resultado = await salvarNaPlanilha(dados);
-          if (resultado && resultado.erro) {
-            showError(resultado.mensagem || 'Erro ao salvar na planilha.');
-            return;
-          }
-          showSuccess('Cadastro salvo com sucesso na planilha!', { modal: true });
-          limparFormulario();
-        } catch (err) {
-          console.error(err);
-          showError('Falha ao salvar. Verifique sua conexão e tente novamente.');
-        }
-      });
+/* ============================================================
+   Login
+   ============================================================ */
+function requestLogin() {
+  if (State.manualMode) return;
+  if (!State.gisReady) {
+    showStatus('Carregando autenticação... aguarde e tente novamente.', 'warning', 'loginStatus');
+    setTimeout(requestLogin, 500);
+    return;
+  }
+  if (!State.gapiReady) {
+    showStatus('<span class=\'spinner dark\'></span>Carregando APIs do Google...', 'info', 'loginStatus');
+    initGapiClient().then(() => {
+      State.tokenClient.requestAccessToken({ prompt: 'consent' });
+    }).catch(() => {
+      showStatus('Erro ao carregar APIs. Tente o Modo Manual.', 'error', 'loginStatus');
     });
-  </script>
+    return;
+  }
+  State.tokenClient.requestAccessToken({ prompt: 'consent' });
+}
+
+async function onLoginSuccess() {
+  // Obter e-mail do usuário via userinfo
+  try {
+    const resp = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: 'Bearer ' + State.accessToken }
+    });
+    const info = await resp.json();
+    State.userEmail = info.email || '(desconhecido)';
+    Debug.log('Usuário autenticado: ' + State.userEmail, 'info');
+  } catch (e) {
+    State.userEmail = '(autenticado)';
+    Debug.log('Não foi possível obter userinfo: ' + e.message, 'warn');
+  }
+
+  document.getElementById('loginSection').classList.add('hidden');
+  document.getElementById('formSection').classList.remove('hidden');
+  document.getElementById('userEmail').textContent = State.userEmail;
+
+  showStatus('<span class=\'spinner\'></span>Carregando dados...', 'info');
+  await loadEscolas();
+  await loadExistingRecords();
+  clearStatus();
+}
+
+function logout() {
+  if (State.accessToken && google.accounts.oauth2) {
+    google.accounts.oauth2.revoke(State.accessToken, () => {
+      Debug.log('Token revogado', 'info');
+    });
+  }
+  State.accessToken = null;
+  State.userEmail = null;
+  State.manualMode = false;
+  gapi.client.setToken(null);
+  document.getElementById('formSection').classList.add('hidden');
+  document.getElementById('loginSection').classList.remove('hidden');
+  showStatus('Você saiu. Faça login novamente.', 'info', 'loginStatus');
+}
+
+/* ============================================================
+   Modo Manual (Fallback)
+   ============================================================ */
+function enableManualMode() {
+  State.manualMode = true;
+  State.userEmail = 'modo.manual@offline';
+  Debug.log('Modo manual ativado - sem conexão com planilhas', 'warn');
+  document.getElementById('loginSection').classList.add('hidden');
+  document.getElementById('formSection').classList.remove('hidden');
+  document.getElementById('userEmail').textContent = 'Modo Manual (Offline)';
+
+  const sel = document.getElementById('escola');
+  sel.disabled = false;
+  sel.innerHTML = '<option value=\'\'>Selecione... (offline)</option>';
+  const fallbackEscolas = ['Escola Modelo 01','Escola Modelo 02','Escola Modelo 03','Escola Modelo 04','Escola Modelo 05'];
+  fallbackEscolas.forEach(e => {
+    const opt = document.createElement('option');
+    opt.value = e; opt.textContent = e;
+    sel.appendChild(opt);
+  });
+  showStatus('Modo manual ativo. Os dados NÃO serão salvos na planilha (apenas validados localmente).', 'warning');
+}
+
+/* ============================================================
+   Carregar Escolas da Planilha
+   ============================================================ */
+async function loadEscolas() {
+  const sel = document.getElementById('escola');
+  sel.innerHTML = '<option value=\'\'>Carregando escolas...</option>';
+  sel.disabled = true;
+  try {
+    const data = await withRetry(async () => {
+      return await gapi.client.sheets.spreadsheets.values.get({
+        spreadsheetId: CONFIG.SPREADSHEET_ESCOLAS,
+        range: 'A:A'
+      });
+    }, 'Carregar escolas');
+
+    const rows = data.result.values || [];
+    State.escolas = [];
+    if (rows.length > 0) {
+      // Assume primeira linha como cabeçalho
+      for (let i = 1; i < rows.length; i++) {
+        if (rows[i][0] && rows[i][0].trim()) State.escolas.push(rows[i][0].trim());
+      }
+      if (State.escolas.length === 0) {
+        // sem cabeçalho detectado, usa tudo
+        State.escolas = rows.map(r => r[0] && r[0].trim()).filter(Boolean);
+      }
+    }
+    sel.innerHTML = '<option value=\'\'>Selecione...</option>';
+    State.escolas.forEach(e => {
+      const opt = document.createElement('option');
+      opt.value = e; opt.textContent = e;
+      sel.appendChild(opt);
+    });
+    sel.disabled = false;
+    Debug.log(`${State.escolas.length} escolas carregadas`, 'info');
+  } catch (err) {
+    Debug.log('Erro ao carregar escolas: ' + (err.message || err), 'err');
+    sel.innerHTML = '<option value=\'\'>Erro ao carregar - digite manualmente</option>';
+    sel.disabled = false;
+    showStatus('Aviso: não foi possível carregar a lista de escolas. Verifique permissões.', 'warning');
+  }
+}
+
+/* ============================================================
+   Carregar Registros Existentes (para checar matrícula)
+   ============================================================ */
+async function loadExistingRecords() {
+  try {
+    const data = await withRetry(async () => {
+      return await gapi.client.sheets.spreadsheets.values.get({
+        spreadsheetId: CONFIG.SPREADSHEET_REGISTROS,
+        range: 'A:J'
+      });
+    }, 'Carregar registros');
+    const rows = data.result.values || [];
+    if (rows.length > 0) {
+      const header = rows[0];
+      State.existingRecords = rows.slice(1).map(r => {
+        const obj = {};
+        header.forEach((h, i) => obj[h] = r[i] || '');
+        return obj;
+      });
+    }
+    Debug.log(`${State.existingRecords.length} registros existentes carregados`, 'info');
+  } catch (err) {
+    Debug.log('Erro ao carregar registros: ' + (err.message || err), 'warn');
+    State.existingRecords = [];
+  }
+}
+
+function findRecordByMatricula(matricula) {
+  const clean = matricula.replace('-', '');
+  return State.existingRecords.find(r => {
+    const rm = (r.Matrícula || r.Matricula || r.matricula || '').toString().replace('-', '');
+    return rm === clean;
+  });
+}
+
+/* ============================================================
+   Salvar / Atualizar Registro
+   ============================================================ */
+async function saveRecord() {
+  if (!validateAll()) {
+    showStatus('Corrija os campos destacados em vermelho.', 'error');
+    return;
+  }
+
+  const data = {
+    'Nome': document.getElementById('nome').value.trim(),
+    'E-mail': document.getElementById('email').value.trim(),
+    'Matrícula': document.getElementById('matricula').value.trim(),
+    'Telefone': document.getElementById('telefone').value.trim(),
+    'Escola': document.getElementById('escola').value,
+    'Período': document.getElementById('periodo').value,
+    'Horário 1': document.getElementById('horario1').value.trim(),
+    'Horário 2': document.getElementById('horario2').value.trim(),
+    'Horário 3': document.getElementById('horario3').value.trim(),
+    'Horário 4': document.getElementById('horario4').value.trim()
+  };
+
+  const existing = findRecordByMatricula(data['Matrícula']);
+  const isUpdate = !!existing;
+
+  // Confirmação
+  const action = isUpdate ? 'ATUALIZAR' : 'SALVAR';
+  const confirmMsg = isUpdate
+    ? `Já existe um cadastro para a matrícula ${data['Matrícula']} (${existing['Nome'] || 'sem nome'}).\n\nDeseja ATUALIZAR este registro com os novos dados?`
+    : `Confirma o cadastro de ${data['Nome']} (matrícula ${data['Matrícula']})?`;
+
+  if (!confirm(confirmMsg)) {
+    showStatus('Operação cancelada pelo usuário.', 'warning');
+    return;
+  }
+
+  if (State.manualMode) {
+    showStatus(`[Modo Manual] Dados validados com sucesso! (não salvos na planilha)<br>${JSON.stringify(data, null, 2)}`, 'success');
+    Debug.log('Modo manual: dados validados apenas', 'info');
+    return;
+  }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class=\'spinner\'></span>Salvando...';
+  showStatus('<span class=\'spinner\'></span>Enviando dados para a planilha...', 'info');
+
+  try {
+    if (isUpdate) {
+      await updateRecord(existing, data);
+    } else {
+      await appendRecord(data);
+    }
+    showStatus(`<strong>${action === 'ATUALIZAR' ? 'Atualização' : 'Cadastro'} realizado com sucesso!</strong><br>Matrícula: ${data['Matrícula']}<br>Escola: ${data['Escola']}`, 'success');
+    Debug.log(`${action} concluído para matrícula ${data['Matrícula']}`, 'info');
+    await loadExistingRecords();
+  } catch (err) {
+    Debug.log('Erro ao salvar: ' + (err.message || JSON.stringify(err)), 'err');
+    showStatus('Erro ao salvar: ' + (err.message || 'falha desconhecida').replace(/<[^>]*>/g, ''), 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Salvar Cadastro';
+  }
+}
+
+async function appendRecord(data) {
+  const values = [[ data['Nome'], data['E-mail'], data['Matrícula'], data['Telefone'],
+                    data['Escola'], data['Período'], data['Horário 1'], data['Horário 2'],
+                    data['Horário 3'], data['Horário 4'] ]];
+  return await withRetry(async () => {
+    return await gapi.client.sheets.spreadsheets.values.append({
+      spreadsheetId: CONFIG.SPREADSHEET_REGISTROS,
+      range: 'A:J',
+      valueInputOption: 'USER_ENTERED',
+      resource: { values }
+    });
+  }, 'Append registro');
+}
+
+async function updateRecord(existing, data) {
+  // Busca linha correspondente via busca na planilha
+  const matriculaClean = data['Matrícula'].replace('-', '');
+  let rowIndex = -1;
+  try {
+    const search = await gapi.client.sheets.spreadsheets.values.get({
+      spreadsheetId: CONFIG.SPREADSHEET_REGISTROS,
+      range: 'C:C'
+    });
+    const rows = search.result.values || [];
+    for (let i = 0; i < rows.length; i++) {
+      if ((rows[i][0] || '').toString().replace('-', '') === matriculaClean) {
+        rowIndex = i + 1; // 1-based
+        break;
+      }
+    }
+  } catch (e) {
+    Debug.log('Falha ao localizar linha para update: ' + e.message, 'warn');
+  }
+
+  if (rowIndex === -1) {
+    Debug.log('Linha não encontrada para update, fazendo append', 'warn');
+    return await appendRecord(data);
+  }
+
+  const range = `A${rowIndex}:J${rowIndex}`;
+  const values = [[ data['Nome'], data['E-mail'], data['Matrícula'], data['Telefone'],
+                    data['Escola'], data['Período'], data['Horário 1'], data['Horário 2'],
+                    data['Horário 3'], data['Horário 4'] ]];
+  return await withRetry(async () => {
+    return await gapi.client.sheets.spreadsheets.values.update({
+      spreadsheetId: CONFIG.SPREADSHEET_REGISTROS,
+      range: range,
+      valueInputOption: 'USER_ENTERED',
+      resource: { values }
+    });
+  }, 'Update registro linha ' + rowIndex);
+}
+
+/* ============================================================
+   Event Listeners
+   ============================================================ */
+function setupListeners() {
+  document.getElementById('googleLoginBtn').addEventListener('click', requestLogin);
+  document.getElementById('manualModeBtn').addEventListener('click', enableManualMode);
+  document.getElementById('logoutBtn').addEventListener('click', logout);
+  document.getElementById('cecapeForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    saveRecord();
+  });
+
+  // Máscaras
+  document.getElementById('telefone').addEventListener('input', (e) => {
+    e.target.value = maskTelefone(e.target.value);
+  });
+  document.getElementById('matricula').addEventListener('input', (e) => {
+    e.target.value = maskMatricula(e.target.value);
+  });
+  ['horario1','horario2','horario3','horario4'].forEach(id => {
+    document.getElementById(id).addEventListener('input', (e) => {
+      e.target.value = maskHorario(e.target.value);
+    });
+  });
+
+  // Validação on blur
+  const blurMap = {
+    nome: validateNome, email: validateEmail, matricula: validateMatricula,
+    telefone: validateTelefone, escola: validateEscola, periodo: validatePeriodo,
+    horario1: validateHorario, horario2: validateHorario, horario3: validateHorario, horario4: validateHorario
+  };
+  Object.entries(blurMap).forEach(([id, fn]) => {
+    document.getElementById(id).addEventListener('blur', (e) => {
+      const err = fn(e.target.value);
+      showFieldError(id, err || '');
+    });
+  });
+}
+
+/* ============================================================
+   Inicialização
+   ============================================================ */
+window.addEventListener('load', () => {
+  Debug.init();
+  setupListeners();
+  Debug.log('Config: ClientID=' + CONFIG.CLIENT_ID.slice(0,12) + '...', 'info');
+  Debug.log('Config: Registros=' + CONFIG.SPREADSHEET_REGISTROS, 'info');
+  Debug.log('Config: Escolas=' + CONFIG.SPREADSHEET_ESCOLAS, 'info');
+
+  // Inicializa gapi client (discovery) e GIS
+  initGapiClient().catch(err => {
+    Debug.log('Falha ao inicializar gapi: ' + (err.message || err), 'err');
+    showStatus('Aviso: APIs do Google não carregaram. Use o Modo Manual.', 'warning', 'loginStatus');
+  });
+  initGisClient();
+});
+</script>
 </body>
 </html>
