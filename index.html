@@ -99,44 +99,16 @@
   .user-info span { font-weight: 600; color: #1e3c72; }
   .btn-logout { background: transparent; border: none; color: #e74c3c; cursor: pointer; font-weight: 600; }
   .debug-panel {
-    position: fixed; bottom: 0; right: 0; width: 500px; max-height: 400px;
-    background: #1e1e1e; color: #0f0; font-family: monospace; font-size: 0.75em;
-    padding: 0; overflow: hidden; z-index: 9999; display: none;
+    position: fixed; bottom: 0; right: 0; width: 400px; max-height: 300px;
+    background: #1e1e1e; color: #0f0; font-family: monospace; font-size: 0.78em;
+    padding: 10px; overflow-y: auto; z-index: 9999; display: none;
     border-top-left-radius: 8px; box-shadow: -2px -2px 10px rgba(0,0,0,0.5);
   }
-  .debug-panel.show { display: flex; flex-direction: column; }
-  .debug-header {
-    background: #2d2d2d;
-    padding: 5px 10px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid #444;
-  }
-  .debug-header span { color: #fff; font-weight: bold; }
-  .debug-tools button {
-    background: #444;
-    color: #fff;
-    border: none;
-    padding: 3px 8px;
-    margin-left: 5px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.85em;
-  }
-  .debug-tools button:hover { background: #666; }
-  .debug-log-container {
-    overflow-y: auto;
-    flex: 1;
-    padding: 10px;
-  }
-  .debug-line { padding: 2px 0; border-bottom: 1px solid #333; }
-  .debug-line.info { color: #6bcBff; }
-  .debug-line.debug { color: #0f0; }
-  .debug-line.match { color: #27ae60; }
-  .debug-line.nomatch { color: #e67e22; }
-  .debug-line.error { color: #ff6b6b; }
-  .debug-line.warn { color: #ffd93d; }
+  .debug-panel.show { display: block; }
+  .debug-panel .debug-line { padding: 2px 0; border-bottom: 1px solid #333; }
+  .debug-panel .debug-line.err { color: #ff6b6b; }
+  .debug-panel .debug-line.warn { color: #ffd93d; }
+  .debug-panel .debug-line.info { color: #6bcBff; }
   .debug-toggle-hint {
     position: fixed; bottom: 5px; left: 5px; font-size: 0.7em; color: rgba(255,255,255,0.5);
     z-index: 9998; pointer-events: none;
@@ -144,7 +116,7 @@
   .footer { text-align: center; padding: 15px; color: #888; font-size: 0.8em; }
   @media (max-width: 600px) {
     .row { flex-direction: column; }
-    .debug-panel { width: 100%; right: 0; }
+    .debug-panel { width: 100%; }
   }
 </style>
 </head>
@@ -266,28 +238,12 @@
   </div>
 </div>
 
-<div id="debugPanel" class="debug-panel">
-  <div class="debug-header">
-    <span>Painel de Depuração</span>
-    <div class="debug-tools">
-      <button id="clearLogsBtn" title="Limpar logs">&#x1F5D1; Limpar</button>
-      <button id="copyLogsBtn" title="Copiar logs">&#x1F4CB; Copiar</button>
-    </div>
-  </div>
-  <div id="debugLogContainer" class="debug-log-container">
-    <!-- linhas de log serão inseridas aqui -->
-  </div>
-</div>
+<div id="debugPanel" class="debug-panel"></div>
 <div class="debug-toggle-hint">F12: debug</div>
 
-<!-- SweetAlert2 -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://apis.google.com/js/api.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
-/* ============================================================
-   CECAPE - Configurações
-   ============================================================ */
 const CONFIG = {
   CLIENT_ID: '367248828417-n4l55p0dloon7uf71erubrmfouegq16u.apps.googleusercontent.com',
   SPREADSHEET_REGISTROS: '1B6xRr_WDCTkWEfsaeiEPdgDILuDwaQd1oZQEsQdF6GA',
@@ -298,26 +254,18 @@ const CONFIG = {
   RETRY_DELAY: 1500
 };
 
-/* ============================================================
-   Sistema de Debug Melhorado
-   ============================================================ */
 const Debug = {
   enabled: false,
   panel: null,
-  logContainer: null,
   init() {
     this.panel = document.getElementById('debugPanel');
-    this.logContainer = document.getElementById('debugLogContainer');
     document.addEventListener('keydown', (e) => {
       if (e.key === 'F12') {
         e.preventDefault();
         this.toggle();
       }
     });
-    // Botões
-    document.getElementById('clearLogsBtn').addEventListener('click', () => this.clearLogs());
-    document.getElementById('copyLogsBtn').addEventListener('click', () => this.copyLogs());
-    this.log('Debug inicializado (modo detalhado)', 'info');
+    this.log('Debug inicializado', 'info');
   },
   toggle() {
     this.enabled = !this.enabled;
@@ -329,37 +277,12 @@ const Debug = {
     const line = document.createElement('div');
     line.className = 'debug-line ' + type;
     line.textContent = `[${ts}] ${msg}`;
-    this.logContainer.appendChild(line);
-    this.logContainer.scrollTop = this.logContainer.scrollHeight;
-    console.log(`%c[CECAPE ${type.toUpperCase()}]`, type === 'error' ? 'color:red' : type === 'warn' ? 'color:orange' : type === 'match' ? 'color:green' : type === 'nomatch' ? 'color:orange' : 'color:blue', msg);
-  },
-  clearLogs() {
-    this.logContainer.innerHTML = '';
-    this.log('Logs limpos', 'info');
-  },
-  copyLogs() {
-    const text = Array.from(this.logContainer.children).map(line => line.textContent).join('\n');
-    navigator.clipboard.writeText(text).then(() => {
-      this.log('Logs copiados para a área de transferência.', 'info');
-    }).catch(() => {
-      this.log('Falha ao copiar logs.', 'error');
-    });
+    this.panel.appendChild(line);
+    this.panel.scrollTop = this.panel.scrollHeight;
+    console.log(`%c[CECAPE ${type.toUpperCase()}]`, type === 'err' ? 'color:red' : type === 'warn' ? 'color:orange' : 'color:blue', msg);
   }
 };
 
-/* ============================================================
-   Normalização de dados
-   ============================================================ */
-function normalizeEmail(email) {
-  return email ? email.toString().trim().toLowerCase() : '';
-}
-function normalizeMatricula(matricula) {
-  return matricula ? matricula.toString().replace(/-/g, '').trim() : '';
-}
-
-/* ============================================================
-   Estado Global
-   ============================================================ */
 const State = {
   accessToken: null,
   userEmail: null,
@@ -371,9 +294,6 @@ const State = {
   tokenClient: null
 };
 
-/* ============================================================
-   Utilitários
-   ============================================================ */
 function showStatus(msg, type = 'info', targetId = 'formStatus') {
   const el = document.getElementById(targetId);
   el.className = 'status show ' + type;
@@ -417,9 +337,6 @@ async function withRetry(fn, label = 'operação') {
   throw lastErr;
 }
 
-/* ============================================================
-   Máscaras
-   ============================================================ */
 function maskTelefone(value) {
   let v = value.replace(/\D/g, '').slice(0, 11);
   if (v.length > 6) v = v.replace(/(\d{2})(\d{5})(\d{0,4}).*/, '($1) $2-$3');
@@ -446,10 +363,7 @@ function maskHorario(value) {
   return v.slice(0,5);
 }
 
-/* ============================================================
-   Validações (mantidas inalteradas)
-   ============================================================ */
-function validateNome(value) { /* ... exatamente como original ... */
+function validateNome(value) {
   if (!value || value.trim().length < 3) return 'Informe o nome completo.';
   const parts = value.trim().split(/\s+/);
   if (parts.length < 2) return 'Informe nome e sobrenome (mínimo 2 nomes).';
@@ -525,9 +439,6 @@ function validateAll() {
   return valid;
 }
 
-/* ============================================================
-   Google API - Inicialização (mantida)
-   ============================================================ */
 function initGapiClient() {
   return new Promise((resolve, reject) => {
     gapi.load('client', async () => {
@@ -539,7 +450,7 @@ function initGapiClient() {
         Debug.log('gapi client inicializado', 'info');
         resolve();
       } catch (err) {
-        Debug.log('Erro ao init gapi: ' + (err.message || err), 'error');
+        Debug.log('Erro ao init gapi: ' + (err.message || err), 'err');
         reject(err);
       }
     });
@@ -557,7 +468,7 @@ function initGisClient() {
     scope: CONFIG.SCOPE,
     callback: (resp) => {
       if (resp.error) {
-        Debug.log('Erro no token GIS: ' + (resp.error_description || resp.error), 'error');
+        Debug.log('Erro no token GIS: ' + (resp.error_description || resp.error), 'err');
         showStatus('Falha no login: ' + (resp.error_description || resp.error), 'error', 'loginStatus');
         return;
       }
@@ -571,9 +482,6 @@ function initGisClient() {
   Debug.log('GIS client inicializado', 'info');
 }
 
-/* ============================================================
-   Login (mantido)
-   ============================================================ */
 function requestLogin() {
   if (State.manualMode) return;
   if (!State.gisReady) {
@@ -582,7 +490,7 @@ function requestLogin() {
     return;
   }
   if (!State.gapiReady) {
-    showStatus('<span class=\\'spinner dark\\'></span>Carregando APIs do Google...', 'info', 'loginStatus');
+    showStatus('<span class=\'spinner dark\'></span>Carregando APIs do Google...', 'info', 'loginStatus');
     initGapiClient().then(() => {
       State.tokenClient.requestAccessToken({ prompt: 'consent' });
     }).catch(() => {
@@ -610,7 +518,7 @@ async function onLoginSuccess() {
   document.getElementById('formSection').classList.remove('hidden');
   document.getElementById('userEmail').textContent = State.userEmail;
 
-  showStatus('<span class=\\'spinner\\'></span>Carregando dados...', 'info');
+  showStatus('<span class=\'spinner\'></span>Carregando dados...', 'info');
   await loadEscolas();
   await loadExistingRecords();
   clearStatus();
@@ -631,9 +539,6 @@ function logout() {
   showStatus('Você saiu. Faça login novamente.', 'info', 'loginStatus');
 }
 
-/* ============================================================
-   Modo Manual (mantido)
-   ============================================================ */
 function enableManualMode() {
   State.manualMode = true;
   State.userEmail = 'modo.manual@offline';
@@ -654,9 +559,6 @@ function enableManualMode() {
   showStatus('Modo manual ativo. Os dados NÃO serão salvos na planilha (apenas validados localmente).', 'warning');
 }
 
-/* ============================================================
-   Carregar Escolas (mantido)
-   ============================================================ */
 async function loadEscolas() {
   const sel = document.getElementById('escola');
   sel.innerHTML = '<option value=\'\'>Carregando escolas...</option>';
@@ -688,18 +590,14 @@ async function loadEscolas() {
     sel.disabled = false;
     Debug.log(`${State.escolas.length} escolas carregadas`, 'info');
   } catch (err) {
-    Debug.log('Erro ao carregar escolas: ' + (err.message || err), 'error');
+    Debug.log('Erro ao carregar escolas: ' + (err.message || err), 'err');
     sel.innerHTML = '<option value=\'\'>Erro ao carregar - digite manualmente</option>';
     sel.disabled = false;
     showStatus('Aviso: não foi possível carregar a lista de escolas. Verifique permissões.', 'warning');
   }
 }
 
-/* ============================================================
-   Carregar Registros Existentes - com log detalhado
-   ============================================================ */
 async function loadExistingRecords() {
-  Debug.log('Iniciando carregamento dos registros existentes...', 'info');
   try {
     const data = await withRetry(async () => {
       return await gapi.client.sheets.spreadsheets.values.get({
@@ -710,76 +608,27 @@ async function loadExistingRecords() {
     const rows = data.result.values || [];
     if (rows.length > 0) {
       const header = rows[0];
-      Debug.log(`Cabeçalho carregado: ${header.join(' | ')}`, 'debug');
-      State.existingRecords = rows.slice(1).map((r, idx) => {
+      State.existingRecords = rows.slice(1).map(r => {
         const obj = {};
         header.forEach((h, i) => obj[h] = r[i] || '');
         return obj;
       });
-      Debug.log(`${State.existingRecords.length} registros carregados da planilha.`, 'info');
-      logAllLoadedRecords();
-    } else {
-      Debug.log('Nenhum registro encontrado na planilha.', 'warn');
-      State.existingRecords = [];
     }
+    Debug.log(`${State.existingRecords.length} registros existentes carregados`, 'info');
   } catch (err) {
-    Debug.log('Erro ao carregar registros: ' + (err.message || err), 'error');
+    Debug.log('Erro ao carregar registros: ' + (err.message || err), 'warn');
     State.existingRecords = [];
   }
 }
 
-function logAllLoadedRecords() {
-  Debug.log('--- EXIBINDO TODOS OS REGISTROS DA PLANILHA ---', 'debug');
-  State.existingRecords.forEach((rec, idx) => {
-    const nome = rec['Nome'] || rec['nome'] || '';
-    const email = rec['E-mail'] || rec['email'] || '';
-    const matricula = rec['Matrícula'] || rec['Matricula'] || rec['matricula'] || '';
-    const emailNorm = normalizeEmail(email);
-    const matriculaNorm = normalizeMatricula(matricula);
-    Debug.log(`Registro #${idx+1}: NOME="${nome}" | E-MAIL="${email}" (normalizado="${emailNorm}") | MATRICULA="${matricula}" (normalizado="${matriculaNorm}")`, 'debug');
+function findRecordByMatricula(matricula) {
+  const clean = matricula.replace('-', '');
+  return State.existingRecords.find(r => {
+    const rm = (r.MATRÍCULA || r.Matrícula || r.matricula || '').toString().replace('-', '');
+    return rm === clean;
   });
-  Debug.log('--- FIM DOS REGISTROS ---', 'debug');
 }
 
-/* ============================================================
-   Busca de registro por matrícula com log detalhado de comparação
-   ============================================================ */
-function findRecordWithLogging(inputEmail, inputMatricula) {
-  const normInputEmail = normalizeEmail(inputEmail);
-  const normInputMatricula = normalizeMatricula(inputMatricula);
-  Debug.log(`--- INICIANDO COMPARAÇÃO DETALHADA ---`, 'debug');
-  Debug.log(`Dados digitados: E-MAIL="${inputEmail}" (normalizado="${normInputEmail}") | MATRÍCULA="${inputMatricula}" (normalizado="${normInputMatricula}")`, 'debug');
-  Debug.log(`Total de registros a comparar: ${State.existingRecords.length}`, 'info');
-
-  for (let i = 0; i < State.existingRecords.length; i++) {
-    const rec = State.existingRecords[i];
-    const recNome = rec['Nome'] || rec['nome'] || '';
-    const recEmail = rec['E-mail'] || rec['email'] || '';
-    const recMatricula = rec['Matrícula'] || rec['Matricula'] || rec['matricula'] || '';
-    const recEmailNorm = normalizeEmail(recEmail);
-    const recMatriculaNorm = normalizeMatricula(recMatricula);
-
-    const emailMatch = (normInputEmail === recEmailNorm);
-    const matriculaMatch = (normInputMatricula === recMatriculaNorm);
-    const match = emailMatch && matriculaMatch;
-
-    Debug.log(`Comparando registro #${i+1} (${recNome}):`, 'info');
-    Debug.log(`  E-mail planilha: "${recEmail}" (normalizado="${recEmailNorm}") | E-mail digitado: "${normInputEmail}" => ${emailMatch ? 'MATCH' : 'NÃO MATCH'}`, emailMatch ? 'match' : 'nomatch');
-    Debug.log(`  Matrícula planilha: "${recMatricula}" (normalizado="${recMatriculaNorm}") | Matrícula digitada: "${normInputMatricula}" => ${matriculaMatch ? 'MATCH' : 'NÃO MATCH'}`, matriculaMatch ? 'match' : 'nomatch');
-    Debug.log(`  Resultado: ${match ? 'ENCONTRADO' : 'NÃO ENCONTRADO'}`, match ? 'match' : 'debug');
-
-    if (match) {
-      Debug.log(`--- REGISTRO ENCONTRADO: ${recNome} (matrícula ${recMatricula}) ---`, 'match');
-      return rec;
-    }
-  }
-  Debug.log(`--- NENHUM REGISTRO CORRESPONDENTE ENCONTRADO. Motivo: combinação de e-mail "${normInputEmail}" e matrícula "${normInputMatricula}" não existe. ---`, 'nomatch');
-  return null;
-}
-
-/* ============================================================
-   Salvar / Atualizar Registro (com SweetAlert2 e logs)
-   ============================================================ */
 async function saveRecord() {
   if (!validateAll()) {
     showStatus('Corrija os campos destacados em vermelho.', 'error');
@@ -787,66 +636,34 @@ async function saveRecord() {
   }
 
   const data = {
-    'Nome': document.getElementById('nome').value.trim(),
-    'E-mail': document.getElementById('email').value.trim(),
-    'Matrícula': document.getElementById('matricula').value.trim(),
-    'Telefone': document.getElementById('telefone').value.trim(),
-    'Escola': document.getElementById('escola').value,
-    'Período': document.getElementById('periodo').value,
-    'Horário 1': document.getElementById('horario1').value.trim(),
-    'Horário 2': document.getElementById('horario2').value.trim(),
-    'Horário 3': document.getElementById('horario3').value.trim(),
-    'Horário 4': document.getElementById('horario4').value.trim()
+    'NOME': document.getElementById('nome').value.trim(),
+    'E-MAIL': document.getElementById('email').value.trim(),
+    'MATRÍCULA': document.getElementById('matricula').value.trim(),
+    'TELEFONE': document.getElementById('telefone').value.trim(),
+    'ESCOLA': document.getElementById('escola').value,
+    'PERÍODO DE TRABALHO': document.getElementById('periodo').value,
+    'HORÁRIO DE ENTRADA': document.getElementById('horario1').value.trim(),
+    'SAÍDA (INTERVALO)': document.getElementById('horario2').value.trim(),
+    'ENTRADA (VOLTA DO INTERVALO)': document.getElementById('horario3').value.trim(),
+    'SAÍDA': document.getElementById('horario4').value.trim()
   };
 
-  // Log detalhado dos dados digitados
-  Debug.log('--- DADOS DIGITADOS NA PÁGINA ---', 'debug');
-  Debug.log(`E-mail original: "${data['E-mail']}" | normalizado: "${normalizeEmail(data['E-mail'])}"`, 'debug');
-  Debug.log(`Matrícula original: "${data['Matrícula']}" | normalizado: "${normalizeMatricula(data['Matrícula'])}"`, 'debug');
-
-  const existing = findRecordWithLogging(data['E-mail'], data['Matrícula']);
+  const existing = findRecordByMatricula(data['MATRÍCULA']);
   const isUpdate = !!existing;
 
-  let confirmResult;
-  if (isUpdate) {
-    const result = await Swal.fire({
-      title: 'Atualizar Cadastro',
-      html: `Já existe um cadastro para a matrícula <b>${data['Matrícula']}</b> (${existing['Nome'] || 'sem nome'}).<br>Deseja <b>ATUALIZAR</b> este registro com os novos dados?`,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: 'Sim, atualizar!',
-      cancelButtonText: 'Cancelar',
-      reverseButtons: true
-    });
-    confirmResult = result.isConfirmed;
-  } else {
-    const result = await Swal.fire({
-      title: 'Confirmar Cadastro',
-      html: `Confirma o cadastro de <b>${data['Nome']}</b> (matrícula ${data['Matrícula']})?`,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: 'Sim, salvar!',
-      cancelButtonText: 'Cancelar',
-      reverseButtons: true
-    });
-    confirmResult = result.isConfirmed;
-  }
+  const action = isUpdate ? 'ATUALIZAR' : 'SALVAR';
+  const confirmMsg = isUpdate
+    ? `Já existe um cadastro para a matrícula ${data['MATRÍCULA']} (${existing['NOME'] || existing['Nome'] || 'sem nome'}).\n\nDeseja ATUALIZAR este registro com os novos dados?`
+    : `Confirma o cadastro de ${data['NOME']} (matrícula ${data['MATRÍCULA']})?`;
 
-  if (!confirmResult) {
+  if (!confirm(confirmMsg)) {
     showStatus('Operação cancelada pelo usuário.', 'warning');
-    Debug.log('Operação cancelada pelo usuário.', 'warn');
     return;
   }
 
   if (State.manualMode) {
     showStatus(`[Modo Manual] Dados validados com sucesso! (não salvos na planilha)<br>${JSON.stringify(data, null, 2)}`, 'success');
-    Debug.log('Modo manual: dados apenas validados', 'info');
-    await Swal.fire({
-      icon: 'success',
-      title: 'Validação OK (offline)',
-      text: 'Dados validados, mas não salvos na planilha.',
-      timer: 3000
-    });
+    Debug.log('Modo manual: dados validados apenas', 'info');
     return;
   }
 
@@ -857,44 +674,26 @@ async function saveRecord() {
 
   try {
     if (isUpdate) {
-      Debug.log('Iniciando atualização de registro existente...', 'info');
       await updateRecord(existing, data);
     } else {
-      Debug.log('Iniciando inclusão de novo registro...', 'info');
       await appendRecord(data);
     }
-    const msg = isUpdate ? 'Atualização' : 'Cadastro';
-    showStatus(`<strong>${msg} realizado com sucesso!</strong><br>Matrícula: ${data['Matrícula']}<br>Escola: ${data['Escola']}`, 'success');
-    Debug.log(`${msg} concluído para matrícula ${data['Matrícula']}`, 'match');
-    await Swal.fire({
-      icon: 'success',
-      title: 'Sucesso!',
-      text: `${msg} efetuado com sucesso.`,
-      timer: 2500
-    });
-    await loadExistingRecords(); // Recarrega para logar novamente
+    showStatus(`<strong>${action === 'ATUALIZAR' ? 'Atualização' : 'Cadastro'} realizado com sucesso!</strong><br>Matrícula: ${data['MATRÍCULA']}<br>Escola: ${data['ESCOLA']}`, 'success');
+    Debug.log(`${action} concluído para matrícula ${data['MATRÍCULA']}`, 'info');
+    await loadExistingRecords();
   } catch (err) {
-    Debug.log('Erro ao salvar: ' + (err.message || JSON.stringify(err)), 'error');
+    Debug.log('Erro ao salvar: ' + (err.message || JSON.stringify(err)), 'err');
     showStatus('Erro ao salvar: ' + (err.message || 'falha desconhecida').replace(/<[^>]*>/g, ''), 'error');
-    await Swal.fire({
-      icon: 'error',
-      title: 'Erro',
-      text: 'Falha ao salvar os dados na planilha. Verifique o painel de debug (F12) para detalhes.'
-    });
   } finally {
     btn.disabled = false;
     btn.textContent = 'Salvar Cadastro';
   }
 }
 
-/* ============================================================
-   Funções de append/update (mantidas com pequenos logs extras)
-   ============================================================ */
 async function appendRecord(data) {
-  const values = [[ data['Nome'], data['E-mail'], data['Matrícula'], data['Telefone'],
-                    data['Escola'], data['Período'], data['Horário 1'], data['Horário 2'],
-                    data['Horário 3'], data['Horário 4'] ]];
-  Debug.log('Enviando append à planilha...', 'debug');
+  const values = [[ data['NOME'], data['E-MAIL'], data['MATRÍCULA'], data['TELEFONE'],
+                    data['ESCOLA'], data['PERÍODO DE TRABALHO'], data['HORÁRIO DE ENTRADA'], data['SAÍDA (INTERVALO)'],
+                    data['ENTRADA (VOLTA DO INTERVALO)'], data['SAÍDA'] ]];
   return await withRetry(async () => {
     return await gapi.client.sheets.spreadsheets.values.append({
       spreadsheetId: CONFIG.SPREADSHEET_REGISTROS,
@@ -906,19 +705,17 @@ async function appendRecord(data) {
 }
 
 async function updateRecord(existing, data) {
-  const matriculaClean = normalizeMatricula(data['Matrícula']);
+  const matriculaClean = data['MATRÍCULA'].replace('-', '');
   let rowIndex = -1;
   try {
-    Debug.log('Buscando linha para update na coluna C...', 'debug');
     const search = await gapi.client.sheets.spreadsheets.values.get({
       spreadsheetId: CONFIG.SPREADSHEET_REGISTROS,
       range: 'C:C'
     });
     const rows = search.result.values || [];
     for (let i = 0; i < rows.length; i++) {
-      if (normalizeMatricula(rows[i][0] || '') === matriculaClean) {
-        rowIndex = i + 1; // 1-based
-        Debug.log(`Linha encontrada: ${rowIndex}`, 'debug');
+      if ((rows[i][0] || '').toString().replace('-', '') === matriculaClean) {
+        rowIndex = i + 1;
         break;
       }
     }
@@ -927,15 +724,14 @@ async function updateRecord(existing, data) {
   }
 
   if (rowIndex === -1) {
-    Debug.log('Linha não encontrada para update, fazendo append como fallback', 'warn');
+    Debug.log('Linha não encontrada para update, fazendo append', 'warn');
     return await appendRecord(data);
   }
 
   const range = `A${rowIndex}:J${rowIndex}`;
-  const values = [[ data['Nome'], data['E-mail'], data['Matrícula'], data['Telefone'],
-                    data['Escola'], data['Período'], data['Horário 1'], data['Horário 2'],
-                    data['Horário 3'], data['Horário 4'] ]];
-  Debug.log(`Atualizando linha ${rowIndex}...`, 'debug');
+  const values = [[ data['NOME'], data['E-MAIL'], data['MATRÍCULA'], data['TELEFONE'],
+                    data['ESCOLA'], data['PERÍODO DE TRABALHO'], data['HORÁRIO DE ENTRADA'], data['SAÍDA (INTERVALO)'],
+                    data['ENTRADA (VOLTA DO INTERVALO)'], data['SAÍDA'] ]];
   return await withRetry(async () => {
     return await gapi.client.sheets.spreadsheets.values.update({
       spreadsheetId: CONFIG.SPREADSHEET_REGISTROS,
@@ -943,12 +739,9 @@ async function updateRecord(existing, data) {
       valueInputOption: 'USER_ENTERED',
       resource: { values }
     });
-  }, `Update registro linha ${rowIndex}`);
+  }, 'Update registro linha ' + rowIndex);
 }
 
-/* ============================================================
-   Event Listeners
-   ============================================================ */
 function setupListeners() {
   document.getElementById('googleLoginBtn').addEventListener('click', requestLogin);
   document.getElementById('manualModeBtn').addEventListener('click', enableManualMode);
@@ -983,9 +776,6 @@ function setupListeners() {
   });
 }
 
-/* ============================================================
-   Inicialização
-   ============================================================ */
 window.addEventListener('load', () => {
   Debug.init();
   setupListeners();
@@ -994,7 +784,7 @@ window.addEventListener('load', () => {
   Debug.log('Config: Escolas=' + CONFIG.SPREADSHEET_ESCOLAS, 'info');
 
   initGapiClient().catch(err => {
-    Debug.log('Falha ao inicializar gapi: ' + (err.message || err), 'error');
+    Debug.log('Falha ao inicializar gapi: ' + (err.message || err), 'err');
     showStatus('Aviso: APIs do Google não carregaram. Use o Modo Manual.', 'warning', 'loginStatus');
   });
   initGisClient();
