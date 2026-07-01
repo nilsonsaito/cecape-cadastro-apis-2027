@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<! DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -73,24 +73,6 @@
   }
   .btn-google:hover { background: #f5f5f5; }
   .btn-google img { width: 20px; height: 20px; }
-  .status {
-    padding: 12px 16px; border-radius: 8px; margin: 15px 0;
-    font-size: 0.9em; display: none;
-  }
-  .status.show { display: block; }
-  .status.info { background: #e7f3fe; color: #1e3c72; border-left: 4px solid #2a5298; }
-  .status.success { background: #e7f9e7; color: #1e7a1e; border-left: 4px solid #27ae60; }
-  .status.error { background: #fdecea; color: #c0392b; border-left: 4px solid #e74c3c; }
-  .status.warning { background: #fff8e1; color: #b8860b; border-left: 4px solid #f1c40f; }
-  .spinner {
-    display: inline-block; width: 18px; height: 18px;
-    border: 3px solid rgba(255,255,255,0.3);
-    border-top-color: #fff; border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    vertical-align: middle; margin-right: 8px;
-  }
-  .spinner.dark { border-color: rgba(42,82,152,0.3); border-top-color: #2a5298; }
-  @keyframes spin { to { transform: rotate(360deg); } }
   .hidden { display: none !important; }
   .user-info {
     display: flex; align-items: center; justify-content: space-between;
@@ -129,9 +111,6 @@
   <div class="content">
     <!-- Login -->
     <div id="loginSection">
-      <div id="loginStatus" class="status info show">
-        Faça login com sua conta @scseduca.com.br para continuar.
-      </div>
       <button id="googleLoginBtn" class="btn btn-google">
         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
         Entrar com Google
@@ -149,8 +128,6 @@
         <span id="userEmail"></span>
         <button id="logoutBtn" class="btn-logout">Sair</button>
       </div>
-
-      <div id="formStatus" class="status"></div>
 
       <form id="cecapeForm" autocomplete="off">
         <div class="form-group">
@@ -243,6 +220,7 @@
 
 <script src="https://apis.google.com/js/api.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 /* ============================================================
    CECAPE - Configurações
@@ -306,16 +284,6 @@ const State = {
 /* ============================================================
    Utilitários
    ============================================================ */
-function showStatus(msg, type = 'info', targetId = 'formStatus') {
-  const el = document.getElementById(targetId);
-  el.className = 'status show ' + type;
-  el.innerHTML = msg;
-}
-function clearStatus(targetId = 'formStatus') {
-  const el = document.getElementById(targetId);
-  el.className = 'status';
-  el.innerHTML = '';
-}
 function showFieldError(fieldId, msg) {
   const input = document.getElementById(fieldId);
   const err = document.getElementById(fieldId + 'Error');
@@ -367,7 +335,6 @@ function maskMatricula(value) {
 function maskHorario(value) {
   let v = value.toUpperCase().replace(/[^0-9H]/g, '');
   if (v.length === 0) return '';
-  // permite digitar números, insere 'h' após 2 dígitos
   let nums = v.replace(/H/g, '');
   if (nums.length > 2) {
     v = nums.slice(0,2) + 'h' + nums.slice(2,4);
@@ -491,7 +458,11 @@ function initGisClient() {
     callback: (resp) => {
       if (resp.error) {
         Debug.log('Erro no token GIS: ' + (resp.error_description || resp.error), 'err');
-        showStatus('Falha no login: ' + (resp.error_description || resp.error), 'error', 'loginStatus');
+        Swal.fire({
+          title: 'Falha no login',
+          text: (resp.error_description || resp.error),
+          icon: 'error'
+        });
         return;
       }
       State.accessToken = resp.access_token;
@@ -510,16 +481,30 @@ function initGisClient() {
 function requestLogin() {
   if (State.manualMode) return;
   if (!State.gisReady) {
-    showStatus('Carregando autenticação... aguarde e tente novamente.', 'warning', 'loginStatus');
+    Swal.fire({
+      title: 'Aguarde',
+      text: 'Autenticação ainda está carregando. Tente novamente em alguns segundos.',
+      icon: 'warning'
+    });
     setTimeout(requestLogin, 500);
     return;
   }
   if (!State.gapiReady) {
-    showStatus('<span class=\'spinner dark\'></span>Carregando APIs do Google...', 'info', 'loginStatus');
+    Swal.fire({
+      title: 'Carregando APIs',
+      text: 'Por favor, aguarde enquanto as APIs do Google são inicializadas.',
+      allowOutsideClick: false,
+      didOpen: () => { Swal.showLoading(); }
+    });
     initGapiClient().then(() => {
+      Swal.close();
       State.tokenClient.requestAccessToken({ prompt: 'consent' });
     }).catch(() => {
-      showStatus('Erro ao carregar APIs. Tente o Modo Manual.', 'error', 'loginStatus');
+      Swal.fire({
+        title: 'Erro',
+        text: 'Não foi possível inicializar as APIs do Google. Tente o Modo Manual.',
+        icon: 'error'
+      });
     });
     return;
   }
@@ -527,7 +512,6 @@ function requestLogin() {
 }
 
 async function onLoginSuccess() {
-  // Obter e-mail do usuário via userinfo
   try {
     const resp = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
       headers: { Authorization: 'Bearer ' + State.accessToken }
@@ -544,10 +528,14 @@ async function onLoginSuccess() {
   document.getElementById('formSection').classList.remove('hidden');
   document.getElementById('userEmail').textContent = State.userEmail;
 
-  showStatus('<span class=\'spinner\'></span>Carregando dados...', 'info');
-  await loadEscolas();
-  await loadExistingRecords();
-  clearStatus();
+  Swal.fire({
+    title: 'Carregando dados',
+    text: 'Obtendo lista de escolas e registros existentes...',
+    allowOutsideClick: false,
+    didOpen: () => { Swal.showLoading(); }
+  });
+  await Promise.all([loadEscolas(), loadExistingRecords()]);
+  Swal.close();
 }
 
 function logout() {
@@ -562,7 +550,11 @@ function logout() {
   gapi.client.setToken(null);
   document.getElementById('formSection').classList.add('hidden');
   document.getElementById('loginSection').classList.remove('hidden');
-  showStatus('Você saiu. Faça login novamente.', 'info', 'loginStatus');
+  Swal.fire({
+    title: 'Sessão encerrada',
+    text: 'Você foi desconectado. Faça login novamente para acessar o cadastro.',
+    icon: 'info'
+  });
 }
 
 /* ============================================================
@@ -578,14 +570,19 @@ function enableManualMode() {
 
   const sel = document.getElementById('escola');
   sel.disabled = false;
-  sel.innerHTML = '<option value=\'\'>Selecione... (offline)</option>';
+  sel.innerHTML = '<option value="">Selecione... (offline)</option>';
   const fallbackEscolas = ['Escola Modelo 01','Escola Modelo 02','Escola Modelo 03','Escola Modelo 04','Escola Modelo 05'];
   fallbackEscolas.forEach(e => {
     const opt = document.createElement('option');
     opt.value = e; opt.textContent = e;
     sel.appendChild(opt);
   });
-  showStatus('Modo manual ativo. Os dados NÃO serão salvos na planilha (apenas validados localmente).', 'warning');
+  Swal.fire({
+    title: 'Modo Manual Ativo',
+    text: 'Os dados serão validados localmente, mas NÃO serão salvos na planilha.',
+    icon: 'warning',
+    confirmButtonText: 'Ok'
+  });
 }
 
 /* ============================================================
@@ -593,7 +590,7 @@ function enableManualMode() {
    ============================================================ */
 async function loadEscolas() {
   const sel = document.getElementById('escola');
-  sel.innerHTML = '<option value=\'\'>Carregando escolas...</option>';
+  sel.innerHTML = '<option value="">Carregando escolas...</option>';
   sel.disabled = true;
   try {
     const data = await withRetry(async () => {
@@ -606,16 +603,14 @@ async function loadEscolas() {
     const rows = data.result.values || [];
     State.escolas = [];
     if (rows.length > 0) {
-      // Assume primeira linha como cabeçalho
       for (let i = 1; i < rows.length; i++) {
         if (rows[i][0] && rows[i][0].trim()) State.escolas.push(rows[i][0].trim());
       }
       if (State.escolas.length === 0) {
-        // sem cabeçalho detectado, usa tudo
         State.escolas = rows.map(r => r[0] && r[0].trim()).filter(Boolean);
       }
     }
-    sel.innerHTML = '<option value=\'\'>Selecione...</option>';
+    sel.innerHTML = '<option value="">Selecione...</option>';
     State.escolas.forEach(e => {
       const opt = document.createElement('option');
       opt.value = e; opt.textContent = e;
@@ -625,14 +620,18 @@ async function loadEscolas() {
     Debug.log(`${State.escolas.length} escolas carregadas`, 'info');
   } catch (err) {
     Debug.log('Erro ao carregar escolas: ' + (err.message || err), 'err');
-    sel.innerHTML = '<option value=\'\'>Erro ao carregar - digite manualmente</option>';
+    sel.innerHTML = '<option value="">Erro ao carregar - digite manualmente</option>';
     sel.disabled = false;
-    showStatus('Aviso: não foi possível carregar a lista de escolas. Verifique permissões.', 'warning');
+    Swal.fire({
+      title: 'Aviso',
+      text: 'Não foi possível carregar a lista de escolas. Verifique as permissões da planilha.',
+      icon: 'warning'
+    });
   }
 }
 
 /* ============================================================
-   Carregar Registros Existentes (para checar matrícula)
+   Carregar Registros Existentes
    ============================================================ */
 async function loadExistingRecords() {
   try {
@@ -645,9 +644,16 @@ async function loadExistingRecords() {
     const rows = data.result.values || [];
     if (rows.length > 0) {
       const header = rows[0];
+      // Normalizar cabeçalhos (lowercase e sem acentos para acesso fácil)
+      const mapHeader = header.map(h => h.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
       State.existingRecords = rows.slice(1).map(r => {
         const obj = {};
-        header.forEach((h, i) => obj[h] = r[i] || '');
+        header.forEach((h, i) => {
+          obj[h.trim()] = r[i] || '';
+        });
+        // Adiciona campo normalizado para busca
+        obj._emailNormalized = (obj['E-mail'] || '').trim().toLowerCase();
+        obj._matriculaNormalized = (obj['Matrícula'] || '').replace('-', '');
         return obj;
       });
     }
@@ -658,11 +664,11 @@ async function loadExistingRecords() {
   }
 }
 
-function findRecordByMatricula(matricula) {
-  const clean = matricula.replace('-', '');
+function findDuplicate(email, matricula) {
+  const emailClean = email.trim().toLowerCase();
+  const matriculaClean = matricula.replace('-', '');
   return State.existingRecords.find(r => {
-    const rm = (r.Matrícula || r.Matricula || r.matricula || '').toString().replace('-', '');
-    return rm === clean;
+    return r._emailNormalized === emailClean || r._matriculaNormalized === matriculaClean;
   });
 }
 
@@ -671,7 +677,7 @@ function findRecordByMatricula(matricula) {
    ============================================================ */
 async function saveRecord() {
   if (!validateAll()) {
-    showStatus('Corrija os campos destacados em vermelho.', 'error');
+    // Os erros já são exibidos nos campos; opcionalmente podemos mostrar um resumo
     return;
   }
 
@@ -688,46 +694,86 @@ async function saveRecord() {
     'Horário 4': document.getElementById('horario4').value.trim()
   };
 
-  const existing = findRecordByMatricula(data['Matrícula']);
-  const isUpdate = !!existing;
+  // Verificar duplicidade (e-mail ou matrícula)
+  const duplicate = findDuplicate(data['E-mail'], data['Matrícula']);
+  let isUpdate = false;
+  let existingRecord = null;
 
-  // Confirmação
-  const action = isUpdate ? 'ATUALIZAR' : 'SALVAR';
-  const confirmMsg = isUpdate
-    ? `Já existe um cadastro para a matrícula ${data['Matrícula']} (${existing['Nome'] || 'sem nome'}).\n\nDeseja ATUALIZAR este registro com os novos dados?`
-    : `Confirma o cadastro de ${data['Nome']} (matrícula ${data['Matrícula']})?`;
-
-  if (!confirm(confirmMsg)) {
-    showStatus('Operação cancelada pelo usuário.', 'warning');
-    return;
+  if (duplicate) {
+    // Exibir informações do existente
+    const result = await Swal.fire({
+      title: 'Usuário já cadastrado',
+      html: `
+        <p>Já existe um registro com o mesmo <strong>e-mail</strong> ou <strong>matrícula</strong>.</p>
+        <table style="width:100%; text-align:left; margin-top:10px;">
+          <tr><td><b>Nome:</b></td><td>${duplicate['Nome']}</td></tr>
+          <tr><td><b>E-mail:</b></td><td>${duplicate['E-mail']}</td></tr>
+          <tr><td><b>Matrícula:</b></td><td>${duplicate['Matrícula']}</td></tr>
+          <tr><td><b>Escola:</b></td><td>${duplicate['Escola']}</td></tr>
+        </table>
+        <p style="margin-top:15px;">Deseja <strong>atualizar</strong> os dados deste usuário?</p>
+      `,
+      icon: 'info',
+      showCancelButton: true,
+      confirmButtonText: 'Sim, atualizar',
+      cancelButtonText: 'Cancelar',
+      reverseButtons: true
+    });
+    if (!result.isConfirmed) return; // usuário cancelou a atualização
+    isUpdate = true;
+    existingRecord = duplicate;
+  } else {
+    // Novo cadastro: confirmação
+    const result = await Swal.fire({
+      title: 'Confirmar novo cadastro',
+      html: `Confirma o cadastro de <b>${data['Nome']}</b> (Matrícula ${data['Matrícula']}) na escola ${data['Escola']}?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sim, cadastrar',
+      cancelButtonText: 'Cancelar'
+    });
+    if (!result.isConfirmed) return;
   }
 
   if (State.manualMode) {
-    showStatus(`[Modo Manual] Dados validados com sucesso! (não salvos na planilha)<br>${JSON.stringify(data, null, 2)}`, 'success');
+    Swal.fire({
+      title: 'Modo Manual',
+      html: 'Dados validados com sucesso!<br><br>Como está no modo offline, os dados <strong>não foram salvos na planilha</strong>.<br><pre>' + JSON.stringify(data, null, 2) + '</pre>',
+      icon: 'success'
+    });
     Debug.log('Modo manual: dados validados apenas', 'info');
     return;
   }
 
-  const btn = document.getElementById('submitBtn');
-  btn.disabled = true;
-  btn.innerHTML = '<span class=\'spinner\'></span>Salvando...';
-  showStatus('<span class=\'spinner\'></span>Enviando dados para a planilha...', 'info');
+  // Mostrar carregando
+  Swal.fire({
+    title: isUpdate ? 'Atualizando cadastro...' : 'Salvando novo cadastro...',
+    text: 'Enviando dados para a planilha...',
+    allowOutsideClick: false,
+    didOpen: () => { Swal.showLoading(); }
+  });
 
   try {
     if (isUpdate) {
-      await updateRecord(existing, data);
+      await updateRecord(existingRecord, data);
     } else {
       await appendRecord(data);
     }
-    showStatus(`<strong>${action === 'ATUALIZAR' ? 'Atualização' : 'Cadastro'} realizado com sucesso!</strong><br>Matrícula: ${data['Matrícula']}<br>Escola: ${data['Escola']}`, 'success');
-    Debug.log(`${action} concluído para matrícula ${data['Matrícula']}`, 'info');
+    Swal.fire({
+      title: 'Sucesso!',
+      html: `<b>${isUpdate ? 'Atualização' : 'Cadastro'}</b> realizado com sucesso!<br><br>Matrícula: ${data['Matrícula']}<br>Escola: ${data['Escola']}`,
+      icon: 'success'
+    });
+    Debug.log(`${isUpdate ? 'Atualização' : 'Cadastro'} concluído para matrícula ${data['Matrícula']}`, 'info');
+    // Atualizar lista de registros em segundo plano
     await loadExistingRecords();
   } catch (err) {
+    Swal.fire({
+      title: 'Erro ao salvar',
+      text: (err.message || 'Falha desconhecida').replace(/<[^>]*>/g, ''),
+      icon: 'error'
+    });
     Debug.log('Erro ao salvar: ' + (err.message || JSON.stringify(err)), 'err');
-    showStatus('Erro ao salvar: ' + (err.message || 'falha desconhecida').replace(/<[^>]*>/g, ''), 'error');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Salvar Cadastro';
   }
 }
 
@@ -746,7 +792,6 @@ async function appendRecord(data) {
 }
 
 async function updateRecord(existing, data) {
-  // Busca linha correspondente via busca na planilha
   const matriculaClean = data['Matrícula'].replace('-', '');
   let rowIndex = -1;
   try {
@@ -836,7 +881,11 @@ window.addEventListener('load', () => {
   // Inicializa gapi client (discovery) e GIS
   initGapiClient().catch(err => {
     Debug.log('Falha ao inicializar gapi: ' + (err.message || err), 'err');
-    showStatus('Aviso: APIs do Google não carregaram. Use o Modo Manual.', 'warning', 'loginStatus');
+    Swal.fire({
+      title: 'Aviso',
+      text: 'As APIs do Google não puderam ser inicializadas. Você pode usar o Modo Manual.',
+      icon: 'warning'
+    });
   });
   initGisClient();
 });
