@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CECAPE - Cadastro APIS 2027</title>
+<style>
+  :root{
+    --primary:#0b5394;
+    --primary-dark:#073763;
+    --accent:#3d85c6;
+    --bg:#f4f7fb;
+    --card:#ffffff;
+    --text:#1f2d3d;
+    --muted:#6b7785;
+    --success:#2e7d32;
+    --danger:#c62828;
+    --warning:#f9a825;
+    --border:#d8e0ea;
+    --radius:10px;
+    --shadow:0 6px 18px rgba(11,83,148,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    background:linear-gradient(135deg,#eef3fa 0%,#dde8f5 100%);
+    color:var(--text);
+    min-height:100vh;
+    padding:20px;
+  }
+  .container{max-width:920px;margin:0 auto}
+  header{
+    background:linear-gradient(135deg,var(--primary),var(--primary-dark));
+    color:#fff;border-radius:var(--radius);
+    padding:24px 28px;box-shadow:var(--shadow);
+    margin-bottom:24px;
+  }
+  header h1{font-size:1.6rem;letter-spacing:.3px}
+  header p{opacity:.9;margin-top:6px;font-size:.95rem}
+  .auth-box{
+    background:var(--card);border-radius:var(--radius);padding:24px;
+    box-shadow:var(--shadow);text-align:center;margin-bottom:24px;
+  }
+  .auth-box p{color:var(--muted);margin-bottom:16px}
+  #signInDiv{display:inline-flex;justify-content:center}
+  .user-info{
+    display:flex;align-items:center;gap:12px;justify-content:center;
+    background:var(--card);border-radius:var(--radius);padding:14px 18px;
+    box-shadow:var(--shadow);margin-bottom:24px;flex-wrap:wrap;
+  }
+  .user-info img{width:40px;height:40px;border-radius:50%}
+  .user-info .name{font-weight:600}
+  .user-info .email{color:var(--muted);font-size:.9rem}
+  .btn-logout{
+    margin-left:auto;background:var(--danger);color:#fff;border:none;
+    padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600;
+  }
+  .btn-logout:hover{opacity:.9}
+  .card{
+    background:var(--card);border-radius:var(--radius);padding:28px;
+    box-shadow:var(--shadow);margin-bottom:24px;
+  }
+  .card h2{font-size:1.2rem;color:var(--primary-dark);margin-bottom:18px;border-bottom:2px solid var(--border);padding-bottom:10px}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .form-group{display:flex;flex-direction:column}
+  .form-group.full{grid-column:1/-1}
+  label{font-weight:600;margin-bottom:6px;font-size:.9rem;color:var(--text)}
+  label .req{color:var(--danger)}
+  input,select{
+    padding:11px 14px;border:1.5px solid var(--border);border-radius:8px;
+    font-size:.95rem;transition:border-color .2s,box-shadow .2s;background:#fff;
+  }
+  input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(61,133,198,.15)}
+  .hint{font-size:.8rem;color:var(--muted);margin-top:5px}
+  .error{font-size:.8rem;color:var(--danger);margin-top:5px;display:none}
+  .error.show{display:block}
+  input.invalid,select.invalid{border-color:var(--danger)}
+  .actions{display:flex;gap:12px;justify-content:flex-end;margin-top:24px;flex-wrap:wrap}
+  button.btn{
+    padding:12px 24px;border:none;border-radius:8px;cursor:pointer;
+    font-weight:600;font-size:.95rem;transition:transform .1s,opacity .2s;
+  }
+  button.btn:active{transform:scale(.98)}
+  .btn-primary{background:var(--primary);color:#fff}
+  .btn-primary:hover{background:var(--primary-dark)}
+  .btn-secondary{background:#e3eaf3;color:var(--primary-dark)}
+  .btn-secondary:hover{background:#d0dbe9}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .status{
+    padding:14px 18px;border-radius:8px;margin-top:18px;font-weight:500;
+    display:none;align-items:center;gap:10px;
+  }
+  .status.show{display:flex}
+  .status.success{background:#e3f6e3;color:var(--success);border:1px solid #b6e0b6}
+  .status.error{background:#fdecea;color:var(--danger);border:1px solid #f5c6c0}
+  .status.info{background:#e8f0fb;color:var(--primary);border:1px solid #c5d8f0}
+  .spinner{
+    width:18px;height:18px;border:3px solid rgba(255,255,255,.4);
+    border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite;
+  }
+  .spinner.dark{border-color:rgba(11,83,148,.25);border-top-color:var(--primary)}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(7,55,99,.45);display:none;
+    align-items:center;justify-content:center;z-index:1000;padding:20px;
+  }
+  .modal-overlay.show{display:flex}
+  .modal{
+    background:#fff;border-radius:var(--radius);padding:28px;max-width:480px;
+    width:100%;box-shadow:0 20px 50px rgba(0,0,0,.25);
+  }
+  .modal h3{color:var(--primary-dark);margin-bottom:14px}
+  .modal p{color:var(--muted);margin-bottom:20px;line-height:1.5}
+  .modal .summary{background:#f4f7fb;border-radius:8px;padding:14px;margin-bottom:20px;font-size:.9rem;line-height:1.7}
+  .modal .summary strong{color:var(--primary-dark)}
+  .modal-actions{display:flex;gap:12px;justify-content:flex-end}
+  .hidden{display:none!important}
+  footer{text-align:center;color:var(--muted);font-size:.85rem;padding:20px}
+  @media(max-width:640px){
+    .form-grid{grid-template-columns:1fr}
+    .user-info .btn-logout{margin-left:0;width:100%}
+    .actions{justify-content:stretch}
+    .actions .btn{flex:1}
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>CECAPE - Cadastro APIS 2027</h1>
+    <p>Sistema de Cadastro das Atividades Pedagógicas Integradas - SCS Educa</p>
+  </header>
+
+  <div id="authSection" class="auth-box">
+    <p>Faça login com sua conta <strong>@scseduca.com.br</strong> para acessar o sistema.</p>
+    <div id="signInDiv"></div>
+  </div>
+
+  <div id="userSection" class="user-info hidden">
+    <img id="userPhoto" src="" alt="Foto">
+    <div>
+      <div class="name" id="userName"></div>
+      <div class="email" id="userEmail"></div>
+    </div>
+    <button class="btn-logout" id="btnLogout">Sair</button>
+  </div>
+
+  <main id="appSection" class="hidden">
+    <div class="card">
+      <h2>Formulário de Cadastro</h2>
+      <form id="cadastroForm" novalidate>
+        <div class="form-grid">
+          <div class="form-group full">
+            <label for="nome">Nome completo <span class="req">*</span></label>
+            <input type="text" id="nome" name="nome" autocomplete="name" placeholder="Ex.: Maria Aparecida da Silva Santos">
+            <div class="hint">Informe o nome completo, sem abreviações (mínimo 2 nomes).</div>
+            <div class="error" id="errNome"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="email">E-mail institucional <span class="req">*</span></label>
+            <input type="email" id="email" name="email" autocomplete="email" placeholder="Ex.: nome.sobrenome@scseduca.com.br">
+            <div class="hint">Domínio obrigatório: @scseduca.com.br (e-mails institucionais genéricos não são aceitos).</div>
+            <div class="error" id="errEmail"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="matricula">Matrícula <span class="req">*</span></label>
+            <input type="text" id="matricula" name="matricula" inputmode="numeric" placeholder="Ex.: 12345 ou 12345-6">
+            <div class="hint">5 dígitos + 1 dígito verificador opcional (separado por hífen).</div>
+            <div class="error" id="errMatricula"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="telefone">Telefone <span class="req">*</span></label>
+            <input type="text" id="telefone" name="telefone" inputmode="numeric" placeholder="Ex.: (11) 98765-4321">
+            <div class="hint">Formato: (xx) xxxxx-xxxx. Máscara aplicada automaticamente.</div>
+            <div class="error" id="errTelefone"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="escola">Escola <span class="req">*</span></label>
+            <select id="escola" name="escola">
+              <option value="">Carregando escolas...</option>
+            </select>
+            <div class="hint">Selecione a escola da lista carregada da planilha.</div>
+            <div class="error" id="errEscola"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="periodo">Período <span class="req">*</span></label>
+            <select id="periodo" name="periodo">
+              <option value="">Selecione...</option>
+              <option value="MANHÃ">MANHÃ</option>
+              <option value="TARDE">TARDE</option>
+            </select>
+            <div class="hint">Período de atuação nas APIS.</div>
+            <div class="error" id="errPeriodo"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="horario1">Horário 1 <span class="req">*</span></label>
+            <input type="text" id="horario1" name="horario1" placeholder="Ex.: 08h30">
+            <div class="hint">Formato HHhMM (HH 06-23, MM 00-59).</div>
+            <div class="error" id="errHorario1"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="horario2">Horário 2 <span class="req">*</span></label>
+            <input type="text" id="horario2" name="horario2" placeholder="Ex.: 09h15">
+            <div class="hint">Formato HHhMM (HH 06-23, MM 00-59).</div>
+            <div class="error" id="errHorario2"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="horario3">Horário 3 <span class="req">*</span></label>
+            <input type="text" id="horario3" name="horario3" placeholder="Ex.: 10h00">
+            <div class="hint">Formato HHhMM (HH 06-23, MM 00-59).</div>
+            <div class="error" id="errHorario3"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="horario4">Horário 4 <span class="req">*</span></label>
+            <input type="text" id="horario4" name="horario4" placeholder="Ex.: 11h45">
+            <div class="hint">Formato HHhMM (HH 06-23, MM 00-59).</div>
+            <div class="error" id="errHorario4"></div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="button" class="btn btn-secondary" id="btnLimpar">Limpar</button>
+          <button type="submit" class="btn btn-primary" id="btnSalvar">Salvar Cadastro</button>
+        </div>
+
+        <div class="status" id="statusBox"></div>
+      </form>
+    </div>
+  </main>
+
+  <footer>
+    CECAPE - Cadastro APIS 2027 &middot; SCS Educa &middot; © 2027
+  </footer>
+</div>
+
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal">
+    <h3 id="modalTitle">Confirmar Cadastro</h3>
+    <p id="modalMessage">Revise os dados antes de confirmar:</p>
+    <div class="summary" id="modalSummary"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="btnCancelar">Cancelar</button>
+      <button class="btn btn-primary" id="btnConfirmar">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://apis.google.com/js/api.js"></script>
+<script>
+/* ================= CONFIGURAÇÕES ================= */
+const CONFIG = {
+  clientId: "367248828417-n4l55p0dloon7uf71erubrmfouegq16u.apps.googleusercontent.com",
+  spreadsheetRegistros: "1B6xRr_WDCTkWEfsaeiEPdgDILuDwaQd1oZQEsQdF6GA",
+  spreadsheetEscolas:   "1VBbvfrZPQZ96e7hzpUnFG_GPfjA3I-mLKI-RgoP8OlA",
+  scope: "https://www.googleapis.com/auth/spreadsheets",
+  guiaRegistro: "REGISTRO",
+  guiaLista: "LISTA",
+  dominio: "scseduca.com.br"
+};
+
+let tokenClient = null;
+let accessToken = null;
+let currentUser = null;
+let escolasCarregadas = false;
+let pendenteConfirmacao = null;
+
+/* ================= INICIALIZAÇÃO ================= */
+function init(){
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CONFIG.clientId,
+    scope: CONFIG.scope,
+    callback: (resp)=>{
+      if(resp.error){
+        mostrarStatus("Erro ao autenticar: "+resp.error, "error");
+        return;
+      }
+      accessToken = resp.access_token;
+      gapi.load("client", iniciarGapi);
+    }
+  });
+
+  google.accounts.id.initialize({
+    client_id: CONFIG.clientId,
+    callback: onSignIn,
+    hosted_domain: CONFIG.dominio
+  });
+  google.accounts.id.renderButton(document.getElementById("signInDiv"),{
+    theme:"filled_blue", size:"large", shape:"pill", text:"signin_with", width:280
+  });
+}
+
+function iniciarGapi(){
+  gapi.client.init({
+    discoveryDocs:["https://sheets.googleapis.com/$discovery/rest?version=v4"]
+  }).then(()=>{
+    gapi.client.setToken({access_token: accessToken});
+    carregarEscolas();
+  }).catch(err=>{
+    mostrarStatus("Falha ao iniciar API: "+(err.message||err), "error");
+  });
+}
+
+function onSignIn(response){
+  const payload = parseJwt(response.credential);
+  if(!payload || !payload.email){
+    mostrarStatus("Não foi possível obter dados da conta.", "error");
+    return;
+  }
+  if(!payload.email.toLowerCase().endsWith("@"+CONFIG.dominio)){
+    mostrarStatus("Acesso restrito a contas @"+CONFIG.dominio, "error");
+    google.accounts.id.cancel();
+    return;
+  }
+  currentUser = payload;
+  document.getElementById("userName").textContent = payload.name || "Usuário";
+  document.getElementById("userEmail").textContent = payload.email;
+  document.getElementById("userPhoto").src = payload.picture || "";
+  document.getElementById("authSection").classList.add("hidden");
+  document.getElementById("userSection").classList.remove("hidden");
+  document.getElementById("appSection").classList.remove("hidden");
+  google.accounts.id.disableAutoSelect();
+  // Solicita token de acesso ao Sheets
+  tokenClient.requestAccessToken({prompt:""});
+}
+
+function parseJwt(t){
+  try{
+    const base64Url = t.split(".")[1];
+    const base64 = base64Url.replace(/-/g,"+").replace(/_/g,"/");
+    const json = decodeURIComponent(atob(base64).split("").map(c=>
+      "%"+("00"+c.charCodeAt(0).toString(16)).slice(-2)).join(""));
+    return JSON.parse(json);
+  }catch(e){ return null; }
+}
+
+function logout(){
+  accessToken = null;
+  currentUser = null;
+  if(gapi && gapi.client){ gapi.client.setToken(null); }
+  document.getElementById("authSection").classList.remove("hidden");
+  document.getElementById("userSection").classList.add("hidden");
+  document.getElementById("appSection").classList.add("hidden");
+  document.getElementById("cadastroForm").reset();
+  mostrarStatus("", "");
+}
+
+/* ================= CARREGAR ESCOLAS ================= */
+function carregarEscolas(){
+  const sel = document.getElementById("escola");
+  sel.innerHTML = '<option value="">Carregando escolas...</option>';
+  gapi.client.sheets.spreadsheets.values.get({
+    spreadsheetId: CONFIG.spreadsheetEscolas,
+    range: CONFIG.guiaLista + "!A2:A"
+  }).then(resp=>{
+    const rows = resp.result.values || [];
+    const lista = rows.map(r=>(r[0]||"").toString().trim()).filter(v=>v.length>0);
+    if(lista.length===0){
+      sel.innerHTML = '<option value="">Nenhuma escola encontrada</option>';
+      mostrarStatus("Nenhuma escola encontrada na planilha.", "error");
+      return;
+    }
+    sel.innerHTML = '<option value="">Selecione a escola...</option>';
+    lista.forEach(e=>{
+      const opt = document.createElement("option");
+      opt.value = e; opt.textContent = e;
+      sel.appendChild(opt);
+    });
+    escolasCarregadas = true;
+  }).catch(err=>{
+    sel.innerHTML = '<option value="">Erro ao carregar</option>';
+    mostrarStatus("Erro ao carregar escolas: "+(err.result?.error?.message||err.message||err), "error");
+  });
+}
+
+/* ================= VALIDAÇÕES ================= */
+function setError(field, msg){
+  const el = document.getElementById(field);
+  const err = document.getElementById("err"+capitalize(field));
+  if(msg){
+    el.classList.add("invalid");
+    if(err){ err.textContent = msg; err.classList.add("show"); }
+  }else{
+    el.classList.remove("invalid");
+    if(err){ err.textContent = ""; err.classList.remove("show"); }
+  }
+}
+function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+
+function validarNome(v){
+  if(!v.trim()) return "Informe o nome completo.";
+  const partes = v.trim().split(/\s+/);
+  if(partes.length < 2) return "Informe nome e sobrenome (sem abreviações).";
+  if(/\b[A-Za-z]\.$/.test(v)) return "Não use abreviações (ex.: 'João S.').";
+  if(v.length < 5) return "Nome muito curto.";
+  return null;
+}
+
+function validarEmail(v){
+  const val = v.trim().toLowerCase();
+  if(!val) return "Informe o e-mail institucional.";
+  if(!val.endsWith("@"+CONFIG.dominio)) return "Use e-mail @"+CONFIG.dominio;
+  const prefixo = val.split("@")[0];
+  const proibidos = ["eme","emef","emei","emi"];
+  for(const p of proibidos){
+    if(prefixo === p || prefixo.startsWith(p+".") || prefixo.startsWith(p+"-")){
+      return "E-mails institucionais genéricos ("+p+".*) não são aceitos. Use seu e-mail pessoal institucional.";
+    }
+  }
+  if(!/^[a-z0-9._-]+@[a-z0-9.-]+\.[a-z]{2,}$/.test(val)) return "E-mail inválido.";
+  return null;
+}
+
+function validarMatricula(v){
+  const val = v.trim();
+  if(!val) return "Informe a matrícula.";
+  if(!/^\d{5}(-?\d)?$/.test(val)) return "Formato inválido. Use 5 dígitos (+1 verificador opcional). Ex.: 12345 ou 12345-6.";
+  return null;
+}
+
+function validarTelefone(v){
+  const val = v.trim();
+  if(!val) return "Informe o telefone.";
+  if(!/^\(\d{2}\) \d{5}-\d{4}$/.test(val)) return "Formato inválido. Use (xx) xxxxx-xxxx.";
+  return null;
+}
+
+function validarEscola(v){
+  if(!v) return "Selecione a escola.";
+  return null;
+}
+function validarPeriodo(v){
+  if(v !== "MANHÃ" && v !== "TARDE") return "Selecione o período.";
+  return null;
+}
+function validarHorario(v){
+  const val = v.trim();
+  if(!val) return "Informe o horário.";
+  const m = /^([0-1]?[0-9]|2[0-3])h([0-5][0-9])$/.exec(val);
+  if(!m) return "Formato inválido. Use HHhMM (HH 06-23, MM 00-59). Ex.: 08h30.";
+  const hh = parseInt(m[1],10);
+  if(hh < 6 || hh > 23) return "Hora deve estar entre 06 e 23.";
+  return null;
+}
+
+function validarTudo(){
+  const dados = coletarDados();
+  let ok = true;
+  const checks = [
+    ["nome", validarNome(dados.nome)],
+    ["email", validarEmail(dados.email)],
+    ["matricula", validarMatricula(dados.matricula)],
+    ["telefone", validarTelefone(dados.telefone)],
+    ["escola", validarEscola(dados.escola)],
+    ["periodo", validarPeriodo(dados.periodo)],
+    ["horario1", validarHorario(dados.horario1)],
+    ["horario2", validarHorario(dados.horario2)],
+    ["horario3", validarHorario(dados.horario3)],
+    ["horario4", validarHorario(dados.horario4)]
+  ];
+  checks.forEach(([f,e])=>{ setError(f,e); if(e) ok=false; });
+  return ok ? dados : null;
+}
+
+function coletarDados(){
+  return {
+    nome: document.getElementById("nome").value,
+    email: document.getElementById("email").value,
+    matricula: document.getElementById("matricula").value.trim(),
+    telefone: document.getElementById("telefone").value.trim(),
+    escola: document.getElementById("escola").value,
+    periodo: document.getElementById("periodo").value,
+    horario1: document.getElementById("horario1").value.trim(),
+    horario2: document.getElementById("horario2").value.trim(),
+    horario3: document.getElementById("horario3").value.trim(),
+    horario4: document.getElementById("horario4").value.trim()
+  };
+}
+
+/* ================= MÁSCARAS ================= */
+function mascaraTelefone(e){
+  let v = e.target.value.replace(/\D/g,"").slice(0,11);
+  if(v.length > 6){
+    v = "("+v.slice(0,2)+") "+v.slice(2,7)+"-"+v.slice(7);
+  }else if(v.length > 2){
+    v = "("+v.slice(0,2)+") "+v.slice(2);
+  }else if(v.length > 0){
+    v = "("+v;
+  }
+  e.target.value = v;
+}
+
+function mascaraMatricula(e){
+  let v = e.target.value.replace(/[^0-9-]/g,"");
+  // permite 5 dígitos + hífen + 1 dígito
+  const match = /^(\d{0,5})(-?)(\d{0,1})$/.exec(v);
+  if(match){
+    let out = match[1];
+    if(match[2] && match[3]) out += "-"+match[3];
+    e.target.value = out;
+  }
+}
+
+function mascaraHorario(e){
+  let v = e.target.value.toLowerCase().replace(/[^0-9h]/g,"");
+  // remove h extras
+  v = v.replace(/h+/g,"h");
+  const parts = v.split("h");
+  let hh = (parts[0]||"").slice(0,2);
+  let mm = (parts[1]||"").slice(0,2);
+  let out = hh;
+  if(v.includes("h")) out += "h"+mm;
+  e.target.value = out;
+}
+
+/* ================= STATUS ================= */
+function mostrarStatus(msg, tipo){
+  const box = document.getElementById("statusBox");
+  box.className = "status";
+  if(!msg){ box.classList.remove("show"); box.innerHTML = ""; return; }
+  box.classList.add("show", tipo);
+  if(tipo === "info"){
+    box.innerHTML = '<div class="spinner dark"></div><span>'+msg+'</span>';
+  }else{
+    box.textContent = msg;
+  }
+}
+
+/* ================= MODAL DE CONFIRMAÇÃO ================= */
+function abrirModal(titulo, mensagem, dados, isUpdate){
+  document.getElementById("modalTitle").textContent = titulo;
+  document.getElementById("modalMessage").textContent = mensagem;
+  const s = document.getElementById("modalSummary");
+  s.innerHTML = `
+    <strong>Nome:</strong> ${esc(dados.nome)}<br>
+    <strong>E-mail:</strong> ${esc(dados.email)}<br>
+    <strong>Matrícula:</strong> ${esc(dados.matricula)}<br>
+    <strong>Telefone:</strong> ${esc(dados.telefone)}<br>
+    <strong>Escola:</strong> ${esc(dados.escola)}<br>
+    <strong>Período:</strong> ${esc(dados.periodo)}<br>
+    <strong>Horários:</strong> ${esc(dados.horario1)} | ${esc(dados.horario2)} | ${esc(dados.horario3)} | ${esc(dados.horario4)}<br>
+    <strong>Operação:</strong> ${isUpdate ? "Atualização de registro existente" : "Novo cadastro"}
+  `;
+  document.getElementById("confirmModal").classList.add("show");
+}
+function fecharModal(){
+  document.getElementById("confirmModal").classList.remove("show");
+  pendenteConfirmacao = null;
+}
+function esc(s){
+  return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+/* ================= OPERAÇÕES NA PLANILHA ================= */
+function buscarLinhaMatricula(matricula){
+  return gapi.client.sheets.spreadsheets.values.get({
+    spreadsheetId: CONFIG.spreadsheetRegistros,
+    range: CONFIG.guiaRegistro + "!A2:J"
+  }).then(resp=>{
+    const rows = resp.result.values || [];
+    for(let i=0;i<rows.length;i++){
+      if((rows[i][2]||"").toString().trim() === matricula) return i+2; // linha real
+    }
+    return -1;
+  });
+}
+
+function gravarNovo(dados){
+  const valores = [[dados.nome, dados.email, dados.matricula, dados.telefone,
+                    dados.escola, dados.periodo, dados.horario1, dados.horario2,
+                    dados.horario3, dados.horario4]];
+  return gapi.client.sheets.spreadsheets.values.append({
+    spreadsheetId: CONFIG.spreadsheetRegistros,
+    range: CONFIG.guiaRegistro + "!A2",
+    valueInputOption: "USER_ENTERED",
+    resource: { values: valores }
+  });
+}
+
+function atualizarLinha(linha, dados){
+  const valores = [[dados.nome, dados.email, dados.matricula, dados.telefone,
+                    dados.escola, dados.periodo, dados.horario1, dados.horario2,
+                    dados.horario3, dados.horario4]];
+  return gapi.client.sheets.spreadsheets.values.update({
+    spreadsheetId: CONFIG.spreadsheetRegistros,
+    range: CONFIG.guiaRegistro + "!A"+linha+":J"+linha,
+    valueInputOption: "USER_ENTERED",
+    resource: { values: valores }
+  });
+}
+
+function executarGravacao(){
+  if(!pendenteConfirmacao) return;
+  const { dados, isUpdate, linha } = pendenteConfirmacao;
+  fecharModal();
+  mostrarStatus("Salvando registro...", "info");
+  document.getElementById("btnSalvar").disabled = true;
+
+  const op = isUpdate ? atualizarLinha(linha, dados) : gravarNovo(dados);
+  op.then(()=>{
+    mostrarStatus(isUpdate ? "Cadastro atualizado com sucesso!" : "Cadastro realizado com sucesso!", "success");
+    document.getElementById("cadastroForm").reset();
+  }).catch(err=>{
+    mostrarStatus("Erro ao salvar: "+(err.result?.error?.message||err.message||err), "error");
+  }).finally(()=>{
+    document.getElementById("btnSalvar").disabled = false;
+    pendenteConfirmacao = null;
+  });
+}
+
+/* ================= EVENTOS ================= */
+function bindEventos(){
+  document.getElementById("btnLogout").addEventListener("click", logout);
+  document.getElementById("btnLimpar").addEventListener("click", ()=>{
+    document.getElementById("cadastroForm").reset();
+    ["nome","email","matricula","telefone","escola","periodo","horario1","horario2","horario3","horario4"]
+      .forEach(f=>setError(f,null));
+    mostrarStatus("", "");
+  });
+
+  document.getElementById("telefone").addEventListener("input", mascaraTelefone);
+  document.getElementById("matricula").addEventListener("input", mascaraMatricula);
+  ["horario1","horario2","horario3","horario4"].forEach(id=>{
+    document.getElementById(id).addEventListener("input", mascaraHorario);
+  });
+
+  // validação em tempo real
+  const campos = {
+    nome: validarNome, email: validarEmail, matricula: validarMatricula,
+    telefone: validarTelefone, escola: validarEscola, periodo: validarPeriodo,
+    horario1: validarHorario, horario2: validarHorario,
+    horario3: validarHorario, horario4: validarHorario
+  };
+  Object.keys(campos).forEach(id=>{
+    const el = document.getElementById(id);
+    el.addEventListener("blur", ()=>{
+      const v = el.value;
+      setError(id, campos[id](id==="email"?v:v));
+    });
+  });
+
+  document.getElementById("cadastroForm").addEventListener("submit", (e)=>{
+    e.preventDefault();
+    mostrarStatus("", "");
+    const dados = validarTudo();
+    if(!dados){
+      mostrarStatus("Corrija os campos destacados antes de continuar.", "error");
+      return;
+    }
+    if(!escolasCarregadas){
+      mostrarStatus("Lista de escolas não carregada. Recarregue a página.", "error");
+      return;
+    }
+    mostrarStatus("Verificando matrícula...", "info");
+    document.getElementById("btnSalvar").disabled = true;
+    buscarLinhaMatricula(dados.matricula).then(linha=>{\n      document.getElementById("btnSalvar").disabled = false;
+      mostrarStatus("", "");
+      if(linha > 0){
+        pendenteConfirmacao = { dados, isUpdate:true, linha };
+        abrirModal("Confirmar Atualização", "Já existe um cadastro com esta matrícula. Deseja atualizar os dados?", dados, true);
+      }else{
+        pendenteConfirmacao = { dados, isUpdate:false, linha:-1 };
+        abrirModal("Confirmar Cadastro", "Revise os dados antes de confirmar o novo cadastro:", dados, false);
+      }
+    }).catch(err=>{\n      document.getElementById("btnSalvar").disabled = false;
+      mostrarStatus("Erro ao verificar matrícula: "+(err.result?.error?.message||err.message||err), "error");
+    });
+  });
+
+  document.getElementById("btnConfirmar").addEventListener("click", executarGravacao);
+  document.getElementById("btnCancelar").addEventListener("click", fecharModal);
+  document.getElementById("confirmModal").addEventListener("click", (e)=>{
+    if(e.target.id === "confirmModal") fecharModal();
+  });
+}
+
+/* ================= START ================= */
+window.addEventListener("load", ()=>{
+  bindEventos();
+  // aguarda o script gsi carregar
+  const waitGsi = setInterval(()=>{
+    if(window.google && google.accounts && google.accounts.oauth2){
+      clearInterval(waitGsi);
+      init();
+    }
+  }, 100);
+});
+</script>
+</body>
+</html>
