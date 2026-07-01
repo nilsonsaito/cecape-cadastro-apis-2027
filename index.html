@@ -1,9 +1,10 @@
-<! DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CECAPE - Cadastro</title>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -73,6 +74,28 @@
   }
   .btn-google:hover { background: #f5f5f5; }
   .btn-google img { width: 20px; height: 20px; }
+  .btn-outline {
+    background: transparent; border: 2px solid #2a5298; color: #2a5298;
+  }
+  .btn-outline:hover { background: #2a5298; color: #fff; }
+  .status {
+    padding: 12px 16px; border-radius: 8px; margin: 15px 0;
+    font-size: 0.9em; display: none;
+  }
+  .status.show { display: block; }
+  .status.info { background: #e7f3fe; color: #1e3c72; border-left: 4px solid #2a5298; }
+  .status.success { background: #e7f9e7; color: #1e7a1e; border-left: 4px solid #27ae60; }
+  .status.error { background: #fdecea; color: #c0392b; border-left: 4px solid #e74c3c; }
+  .status.warning { background: #fff8e1; color: #b8860b; border-left: 4px solid #f1c40f; }
+  .spinner {
+    display: inline-block; width: 18px; height: 18px;
+    border: 3px solid rgba(255,255,255,0.3);
+    border-top-color: #fff; border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle; margin-right: 8px;
+  }
+  .spinner.dark { border-color: rgba(42,82,152,0.3); border-top-color: #2a5298; }
+  @keyframes spin { to { transform: rotate(360deg); } }
   .hidden { display: none !important; }
   .user-info {
     display: flex; align-items: center; justify-content: space-between;
@@ -80,6 +103,7 @@
   }
   .user-info span { font-weight: 600; color: #1e3c72; }
   .btn-logout { background: transparent; border: none; color: #e74c3c; cursor: pointer; font-weight: 600; }
+  .btn-group { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; }
   .debug-panel {
     position: fixed; bottom: 0; right: 0; width: 400px; max-height: 300px;
     background: #1e1e1e; color: #0f0; font-family: monospace; font-size: 0.78em;
@@ -111,24 +135,49 @@
   <div class="content">
     <!-- Login -->
     <div id="loginSection">
+      <div id="loginStatus" class="status info show">
+        Faça login com sua conta @scseduca.com.br para continuar.
+      </div>
       <button id="googleLoginBtn" class="btn btn-google">
         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
         Entrar com Google
       </button>
-      <div style="margin-top:15px;">
-        <button id="manualModeBtn" class="btn" style="background:#7f8c8d;color:#fff;width:100%;">
-          Modo Manual (Offline)
-        </button>
-      </div>
     </div>
 
-    <!-- Formulário -->
+    <!-- Página 1: Verificação -->
+    <div id="verificationSection" class="hidden">
+      <div class="user-info">
+        <span>Verificação de Dados</span>
+        <button id="logoutBtnVerify" class="btn-logout">Sair</button>
+      </div>
+      <div id="verifyStatus" class="status info">
+        Preencha seu e-mail institucional e matrícula para continuar.
+      </div>
+      <div class="form-group">
+        <label for="verifyEmail">E-mail Institucional *</label>
+        <input type="email" id="verifyEmail" placeholder="Ex: seu.email@scseduca.com.br">
+        <div class="hint">Apenas @scseduca.com.br (não aceita eme.*, emef.*, emei.*, emi.*)</div>
+        <div class="error-msg" id="verifyEmailError"></div>
+      </div>
+      <div class="form-group">
+        <label for="verifyMatricula">Matrícula *</label>
+        <input type="text" id="verifyMatricula" placeholder="Ex: 12345 ou 12345-6" maxlength="7">
+        <div class="hint">5 dígitos + 1 dígito verificador opcional.</div>
+        <div class="error-msg" id="verifyMatriculaError"></div>
+      </div>
+      <button id="verifyBtn" class="btn btn-primary">Verificar e Continuar</button>
+    </div>
+
+    <!-- Página 2: Formulário -->
     <div id="formSection" class="hidden">
       <div class="user-info">
-        <span id="userEmail"></span>
-        <button id="logoutBtn" class="btn-logout">Sair</button>
+        <span id="formTitle">Cadastro</span>
+        <div>
+          <button id="backBtn" class="btn-logout" style="color: #2a5298; margin-right: 15px;">← Voltar</button>
+          <button id="logoutBtnForm" class="btn-logout">Sair</button>
+        </div>
       </div>
-
+      <div id="formStatus" class="status"></div>
       <form id="cecapeForm" autocomplete="off">
         <div class="form-group">
           <label for="nome">Nome Completo *</label>
@@ -136,19 +185,17 @@
           <div class="hint">Digite nome e sobrenome completos, sem abreviações.</div>
           <div class="error-msg" id="nomeError"></div>
         </div>
-
         <div class="form-group">
           <label for="email">E-mail Institucional *</label>
-          <input type="email" id="email" name="email" placeholder="Ex: maria.santos@scseduca.com.br">
-          <div class="hint">Apenas e-mails @scseduca.com.br (não aceita eme.*, emef.*, emei.*, emi.*).</div>
+          <input type="email" id="email" name="email" readonly>
+          <div class="hint">E-mail verificado (não editável).</div>
           <div class="error-msg" id="emailError"></div>
         </div>
-
         <div class="row">
           <div class="form-group">
             <label for="matricula">Matrícula *</label>
-            <input type="text" id="matricula" name="matricula" placeholder="Ex: 12345 ou 12345-6" maxlength="7">
-            <div class="hint">5 dígitos + 1 dígito verificador opcional.</div>
+            <input type="text" id="matricula" name="matricula" readonly>
+            <div class="hint">Matrícula verificada (não editável).</div>
             <div class="error-msg" id="matriculaError"></div>
           </div>
           <div class="form-group">
@@ -158,7 +205,6 @@
             <div class="error-msg" id="telefoneError"></div>
           </div>
         </div>
-
         <div class="form-group">
           <label for="escola">Escola *</label>
           <select id="escola" name="escola" disabled>
@@ -167,7 +213,6 @@
           <div class="hint">Selecione a escola da lista carregada da planilha.</div>
           <div class="error-msg" id="escolaError"></div>
         </div>
-
         <div class="form-group">
           <label for="periodo">Período *</label>
           <select id="periodo" name="periodo">
@@ -177,7 +222,6 @@
           </select>
           <div class="error-msg" id="periodoError"></div>
         </div>
-
         <div class="row">
           <div class="form-group">
             <label for="horario1">Horário 1 *</label>
@@ -203,7 +247,6 @@
             <div class="error-msg" id="horario4Error"></div>
           </div>
         </div>
-
         <button type="submit" id="submitBtn" class="btn btn-primary">Salvar Cadastro</button>
       </form>
     </div>
@@ -220,7 +263,6 @@
 
 <script src="https://apis.google.com/js/api.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 /* ============================================================
    CECAPE - Configurações
@@ -273,17 +315,30 @@ const Debug = {
 const State = {
   accessToken: null,
   userEmail: null,
-  manualMode: false,
   escolas: [],
   existingRecords: [],
   gisReady: false,
   gapiReady: false,
-  tokenClient: null
+  tokenClient: null,
+  mode: 'new',          // 'new' ou 'update'
+  recordData: null,     // objeto do registro existente, se update
+  lastVerifyEmail: '',
+  lastVerifyMatricula: ''
 };
 
 /* ============================================================
    Utilitários
    ============================================================ */
+function showStatus(msg, type = 'info', targetId = 'formStatus') {
+  const el = document.getElementById(targetId);
+  el.className = 'status show ' + type;
+  el.innerHTML = msg;
+}
+function clearStatus(targetId = 'formStatus') {
+  const el = document.getElementById(targetId);
+  el.className = 'status';
+  el.innerHTML = '';
+}
 function showFieldError(fieldId, msg) {
   const input = document.getElementById(fieldId);
   const err = document.getElementById(fieldId + 'Error');
@@ -297,8 +352,8 @@ function showFieldError(fieldId, msg) {
   }
 }
 function clearAllErrors() {
-  ['nome','email','matricula','telefone','escola','periodo','horario1','horario2','horario3','horario4']
-    .forEach(id => showFieldError(id, ''));
+  ['nome','email','matricula','telefone','escola','periodo','horario1','horario2','horario3','horario4',
+   'verifyEmail','verifyMatricula'].forEach(id => showFieldError(id, ''));
 }
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
@@ -432,9 +487,7 @@ function initGapiClient() {
   return new Promise((resolve, reject) => {
     gapi.load('client', async () => {
       try {
-        await gapi.client.init({
-          discoveryDocs: CONFIG.DISCOVERY_DOCS
-        });
+        await gapi.client.init({ discoveryDocs: CONFIG.DISCOVERY_DOCS });
         State.gapiReady = true;
         Debug.log('gapi client inicializado', 'info');
         resolve();
@@ -458,11 +511,7 @@ function initGisClient() {
     callback: (resp) => {
       if (resp.error) {
         Debug.log('Erro no token GIS: ' + (resp.error_description || resp.error), 'err');
-        Swal.fire({
-          title: 'Falha no login',
-          text: (resp.error_description || resp.error),
-          icon: 'error'
-        });
+        Swal.fire('Erro no login', resp.error_description || resp.error, 'error');
         return;
       }
       State.accessToken = resp.access_token;
@@ -479,32 +528,23 @@ function initGisClient() {
    Login
    ============================================================ */
 function requestLogin() {
-  if (State.manualMode) return;
   if (!State.gisReady) {
-    Swal.fire({
-      title: 'Aguarde',
-      text: 'Autenticação ainda está carregando. Tente novamente em alguns segundos.',
-      icon: 'warning'
-    });
+    Swal.fire('Aguarde', 'Carregando autenticação... Tente novamente em instantes.', 'warning');
     setTimeout(requestLogin, 500);
     return;
   }
   if (!State.gapiReady) {
     Swal.fire({
       title: 'Carregando APIs',
-      text: 'Por favor, aguarde enquanto as APIs do Google são inicializadas.',
+      html: '<span class="spinner dark"></span> Preparando ambiente Google...',
       allowOutsideClick: false,
-      didOpen: () => { Swal.showLoading(); }
+      showConfirmButton: false
     });
     initGapiClient().then(() => {
       Swal.close();
       State.tokenClient.requestAccessToken({ prompt: 'consent' });
     }).catch(() => {
-      Swal.fire({
-        title: 'Erro',
-        text: 'Não foi possível inicializar as APIs do Google. Tente o Modo Manual.',
-        icon: 'error'
-      });
+      Swal.fire('Erro', 'Não foi possível carregar as APIs do Google.', 'error');
     });
     return;
   }
@@ -517,25 +557,28 @@ async function onLoginSuccess() {
       headers: { Authorization: 'Bearer ' + State.accessToken }
     });
     const info = await resp.json();
-    State.userEmail = info.email || '(desconhecido)';
+    State.userEmail = info.email || '';
     Debug.log('Usuário autenticado: ' + State.userEmail, 'info');
   } catch (e) {
-    State.userEmail = '(autenticado)';
+    State.userEmail = '';
     Debug.log('Não foi possível obter userinfo: ' + e.message, 'warn');
   }
 
   document.getElementById('loginSection').classList.add('hidden');
-  document.getElementById('formSection').classList.remove('hidden');
-  document.getElementById('userEmail').textContent = State.userEmail;
+  document.getElementById('verificationSection').classList.remove('hidden');
 
-  Swal.fire({
-    title: 'Carregando dados',
-    text: 'Obtendo lista de escolas e registros existentes...',
-    allowOutsideClick: false,
-    didOpen: () => { Swal.showLoading(); }
-  });
-  await Promise.all([loadEscolas(), loadExistingRecords()]);
-  Swal.close();
+  // Carregar dados necessários
+  showStatus('Carregando listas...', 'info', 'verifyStatus');
+  await loadEscolas();
+  await loadExistingRecords();
+  clearStatus('verifyStatus');
+
+  // Preencher campo de e-mail (se disponível)
+  const verifyEmailInput = document.getElementById('verifyEmail');
+  if (State.userEmail && /@scseduca\.com\.br$/i.test(State.userEmail)) {
+    verifyEmailInput.value = State.userEmail;
+    State.lastVerifyEmail = State.userEmail;
+  }
 }
 
 function logout() {
@@ -546,43 +589,13 @@ function logout() {
   }
   State.accessToken = null;
   State.userEmail = null;
-  State.manualMode = false;
   gapi.client.setToken(null);
+  State.mode = 'new';
+  State.recordData = null;
   document.getElementById('formSection').classList.add('hidden');
+  document.getElementById('verificationSection').classList.add('hidden');
   document.getElementById('loginSection').classList.remove('hidden');
-  Swal.fire({
-    title: 'Sessão encerrada',
-    text: 'Você foi desconectado. Faça login novamente para acessar o cadastro.',
-    icon: 'info'
-  });
-}
-
-/* ============================================================
-   Modo Manual (Fallback)
-   ============================================================ */
-function enableManualMode() {
-  State.manualMode = true;
-  State.userEmail = 'modo.manual@offline';
-  Debug.log('Modo manual ativado - sem conexão com planilhas', 'warn');
-  document.getElementById('loginSection').classList.add('hidden');
-  document.getElementById('formSection').classList.remove('hidden');
-  document.getElementById('userEmail').textContent = 'Modo Manual (Offline)';
-
-  const sel = document.getElementById('escola');
-  sel.disabled = false;
-  sel.innerHTML = '<option value="">Selecione... (offline)</option>';
-  const fallbackEscolas = ['Escola Modelo 01','Escola Modelo 02','Escola Modelo 03','Escola Modelo 04','Escola Modelo 05'];
-  fallbackEscolas.forEach(e => {
-    const opt = document.createElement('option');
-    opt.value = e; opt.textContent = e;
-    sel.appendChild(opt);
-  });
-  Swal.fire({
-    title: 'Modo Manual Ativo',
-    text: 'Os dados serão validados localmente, mas NÃO serão salvos na planilha.',
-    icon: 'warning',
-    confirmButtonText: 'Ok'
-  });
+  Swal.fire('Logout', 'Você saiu do sistema.', 'info');
 }
 
 /* ============================================================
@@ -603,6 +616,7 @@ async function loadEscolas() {
     const rows = data.result.values || [];
     State.escolas = [];
     if (rows.length > 0) {
+      // Assume primeira linha como cabeçalho
       for (let i = 1; i < rows.length; i++) {
         if (rows[i][0] && rows[i][0].trim()) State.escolas.push(rows[i][0].trim());
       }
@@ -620,13 +634,9 @@ async function loadEscolas() {
     Debug.log(`${State.escolas.length} escolas carregadas`, 'info');
   } catch (err) {
     Debug.log('Erro ao carregar escolas: ' + (err.message || err), 'err');
-    sel.innerHTML = '<option value="">Erro ao carregar - digite manualmente</option>';
+    sel.innerHTML = '<option value="">Erro ao carregar</option>';
     sel.disabled = false;
-    Swal.fire({
-      title: 'Aviso',
-      text: 'Não foi possível carregar a lista de escolas. Verifique as permissões da planilha.',
-      icon: 'warning'
-    });
+    Swal.fire('Aviso', 'Não foi possível carregar a lista de escolas. Verifique permissões.', 'warning');
   }
 }
 
@@ -642,20 +652,14 @@ async function loadExistingRecords() {
       });
     }, 'Carregar registros');
     const rows = data.result.values || [];
+    State.existingRecords = [];
     if (rows.length > 0) {
       const header = rows[0];
-      // Normalizar cabeçalhos (lowercase e sem acentos para acesso fácil)
-      const mapHeader = header.map(h => h.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
-      State.existingRecords = rows.slice(1).map(r => {
+      for (let i = 1; i < rows.length; i++) {
         const obj = {};
-        header.forEach((h, i) => {
-          obj[h.trim()] = r[i] || '';
-        });
-        // Adiciona campo normalizado para busca
-        obj._emailNormalized = (obj['E-mail'] || '').trim().toLowerCase();
-        obj._matriculaNormalized = (obj['Matrícula'] || '').replace('-', '');
-        return obj;
-      });
+        header.forEach((h, idx) => obj[h] = rows[i][idx] || '');
+        State.existingRecords.push(obj);
+      }
     }
     Debug.log(`${State.existingRecords.length} registros existentes carregados`, 'info');
   } catch (err) {
@@ -664,12 +668,173 @@ async function loadExistingRecords() {
   }
 }
 
-function findDuplicate(email, matricula) {
-  const emailClean = email.trim().toLowerCase();
-  const matriculaClean = matricula.replace('-', '');
+function findRecordByMatricula(matricula) {
+  const clean = matricula.replace('-', '');
   return State.existingRecords.find(r => {
-    return r._emailNormalized === emailClean || r._matriculaNormalized === matriculaClean;
+    const rm = (r.Matrícula || r.Matricula || r.matricula || '').toString().replace('-', '');
+    return rm === clean;
   });
+}
+
+/* ============================================================
+   Verificação (Página 1)
+   ============================================================ */
+function handleVerification() {
+  const emailInput = document.getElementById('verifyEmail');
+  const matInput = document.getElementById('verifyMatricula');
+  const email = emailInput.value.trim();
+  const matricula = matInput.value.trim();
+
+  // Validar campos
+  clearAllErrors();
+  let valid = true;
+  const emailErr = validateEmail(email);
+  if (emailErr) { showFieldError('verifyEmail', emailErr); valid = false; }
+  const matErr = validateMatricula(matricula);
+  if (matErr) { showFieldError('verifyMatricula', matErr); valid = false; }
+  if (!valid) return;
+
+  // Verificar se e-mail é de escola (já validado, mas reforçar)
+  const prefix = email.split('@')[0];
+  if (/^(eme|emef|emei|emi)/i.test(prefix)) {
+    Swal.fire('E-mail não permitido', 'E-mails de escola (eme/emef/emei/emi) não são aceitos. Use seu e-mail pessoal institucional.', 'error');
+    return;
+  }
+
+  // Salvar últimos valores usados (para Voltar)
+  State.lastVerifyEmail = email;
+  State.lastVerifyMatricula = matricula;
+
+  // Procurar registro existente por E-mail OU Matrícula
+  const existingRecord = findRecordByEmailOrMatricula(email, matricula);
+
+  if (existingRecord) {
+    // Mostrar dados existentes e perguntar se deseja atualizar
+    const recordHtml = `
+      <p><strong>Nome:</strong> ${existingRecord['Nome'] || '-'}</p>
+      <p><strong>E-mail:</strong> ${existingRecord['E-mail'] || existingRecord.email || '-'}</p>
+      <p><strong>Matrícula:</strong> ${existingRecord['Matrícula'] || existingRecord.matricula || '-'}</p>
+      <p><strong>Escola:</strong> ${existingRecord['Escola'] || '-'}</p>
+      <p><strong>Período:</strong> ${existingRecord['Período'] || '-'}</p>
+    `;
+    Swal.fire({
+      title: 'Registro Encontrado',
+      html: `<p>Já existe um cadastro com estes dados:</p>${recordHtml}<p>Deseja atualizar este registro?</p>`,
+      icon: 'info',
+      showCancelButton: true,
+      confirmButtonText: 'Sim, atualizar',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        State.mode = 'update';
+        State.recordData = existingRecord;
+        goToForm();
+      }
+    });
+  } else {
+    // Novo cadastro
+    State.mode = 'new';
+    State.recordData = null;
+    goToForm();
+  }
+}
+
+function findRecordByEmailOrMatricula(email, matricula) {
+  const cleanM = matricula.replace('-', '');
+  const normEmail = email.toLowerCase();
+  // Procurar por matrícula primeiro
+  let record = State.existingRecords.find(r => {
+    const rm = (r.Matrícula || r.Matricula || r.matricula || '').toString().replace('-', '');
+    return rm === cleanM;
+  });
+  if (record) return record;
+  // Procurar por e-mail
+  record = State.existingRecords.find(r => {
+    const re = (r['E-mail'] || r.email || '').toString().toLowerCase();
+    return re === normEmail;
+  });
+  return record;
+}
+
+/* ============================================================
+   Navegação para Página 2 (Formulário)
+   ============================================================ */
+function goToForm() {
+  document.getElementById('verificationSection').classList.add('hidden');
+  document.getElementById('formSection').classList.remove('hidden');
+
+  const email = State.lastVerifyEmail;
+  const matricula = State.lastVerifyMatricula;
+
+  // Preencher campos read-only
+  document.getElementById('email').value = email;
+  document.getElementById('matricula').value = matricula;
+
+  // Limpar outros campos e erros
+  clearAllErrors();
+  document.getElementById('nome').value = '';
+  document.getElementById('telefone').value = '';
+  document.getElementById('periodo').value = '';
+  document.getElementById('horario1').value = '';
+  document.getElementById('horario2').value = '';
+  document.getElementById('horario3').value = '';
+  document.getElementById('horario4').value = '';
+  document.getElementById('escola').value = '';
+
+  if (State.mode === 'update' && State.recordData) {
+    // Atualizar: preencher todos os campos
+    document.getElementById('formTitle').textContent = 'Atualizar Cadastro Existente';
+    document.getElementById('submitBtn').textContent = 'Atualizar Cadastro';
+
+    const r = State.recordData;
+    document.getElementById('nome').value = r['Nome'] || '';
+    document.getElementById('email').value = r['E-mail'] || r.email || '';
+    document.getElementById('matricula').value = r['Matrícula'] || r.matricula || '';
+    document.getElementById('telefone').value = r['Telefone'] || '';
+    document.getElementById('periodo').value = r['Período'] || '';
+    document.getElementById('horario1').value = r['Horário 1'] || '';
+    document.getElementById('horario2').value = r['Horário 2'] || '';
+    document.getElementById('horario3').value = r['Horário 3'] || '';
+    document.getElementById('horario4').value = r['Horário 4'] || '';
+
+    // Selecionar a escola (se estiver na lista)
+    setTimeout(() => {
+      const escola = r['Escola'] || '';
+      if (escola) {
+        const sel = document.getElementById('escola');
+        for (let i = 0; i < sel.options.length; i++) {
+          if (sel.options[i].value === escola) {
+            sel.selectedIndex = i;
+            break;
+          }
+        }
+      }
+    }, 0);
+  } else {
+    // Novo
+    document.getElementById('formTitle').textContent = 'Novo Cadastro';
+    document.getElementById('submitBtn').textContent = 'Criar Cadastro';
+    // Já tem email e matrícula preenchidos
+  }
+
+  clearStatus();
+}
+
+/* ============================================================
+   Voltar para Verificação
+   ============================================================ */
+function backToVerification() {
+  document.getElementById('formSection').classList.add('hidden');
+  document.getElementById('verificationSection').classList.remove('hidden');
+  // Restaurar últimos valores (se existirem)
+  if (State.lastVerifyEmail) {
+    document.getElementById('verifyEmail').value = State.lastVerifyEmail;
+  }
+  if (State.lastVerifyMatricula) {
+    document.getElementById('verifyMatricula').value = State.lastVerifyMatricula;
+  }
+  // Limpar erros
+  clearAllErrors();
 }
 
 /* ============================================================
@@ -677,7 +842,7 @@ function findDuplicate(email, matricula) {
    ============================================================ */
 async function saveRecord() {
   if (!validateAll()) {
-    // Os erros já são exibidos nos campos; opcionalmente podemos mostrar um resumo
+    Swal.fire('Atenção', 'Corrija os campos destacados em vermelho.', 'error');
     return;
   }
 
@@ -694,86 +859,45 @@ async function saveRecord() {
     'Horário 4': document.getElementById('horario4').value.trim()
   };
 
-  // Verificar duplicidade (e-mail ou matrícula)
-  const duplicate = findDuplicate(data['E-mail'], data['Matrícula']);
-  let isUpdate = false;
-  let existingRecord = null;
+  const actionVerb = State.mode === 'update' ? 'Atualizar' : 'Criar';
+  const confirmText = State.mode === 'update'
+    ? 'Os dados existentes serão sobrescritos. Confirmar atualização?'
+    : 'Confirmar criação do novo cadastro?';
 
-  if (duplicate) {
-    // Exibir informações do existente
-    const result = await Swal.fire({
-      title: 'Usuário já cadastrado',
-      html: `
-        <p>Já existe um registro com o mesmo <strong>e-mail</strong> ou <strong>matrícula</strong>.</p>
-        <table style="width:100%; text-align:left; margin-top:10px;">
-          <tr><td><b>Nome:</b></td><td>${duplicate['Nome']}</td></tr>
-          <tr><td><b>E-mail:</b></td><td>${duplicate['E-mail']}</td></tr>
-          <tr><td><b>Matrícula:</b></td><td>${duplicate['Matrícula']}</td></tr>
-          <tr><td><b>Escola:</b></td><td>${duplicate['Escola']}</td></tr>
-        </table>
-        <p style="margin-top:15px;">Deseja <strong>atualizar</strong> os dados deste usuário?</p>
-      `,
-      icon: 'info',
-      showCancelButton: true,
-      confirmButtonText: 'Sim, atualizar',
-      cancelButtonText: 'Cancelar',
-      reverseButtons: true
-    });
-    if (!result.isConfirmed) return; // usuário cancelou a atualização
-    isUpdate = true;
-    existingRecord = duplicate;
-  } else {
-    // Novo cadastro: confirmação
-    const result = await Swal.fire({
-      title: 'Confirmar novo cadastro',
-      html: `Confirma o cadastro de <b>${data['Nome']}</b> (Matrícula ${data['Matrícula']}) na escola ${data['Escola']}?`,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: 'Sim, cadastrar',
-      cancelButtonText: 'Cancelar'
-    });
-    if (!result.isConfirmed) return;
-  }
-
-  if (State.manualMode) {
-    Swal.fire({
-      title: 'Modo Manual',
-      html: 'Dados validados com sucesso!<br><br>Como está no modo offline, os dados <strong>não foram salvos na planilha</strong>.<br><pre>' + JSON.stringify(data, null, 2) + '</pre>',
-      icon: 'success'
-    });
-    Debug.log('Modo manual: dados validados apenas', 'info');
-    return;
-  }
-
-  // Mostrar carregando
-  Swal.fire({
-    title: isUpdate ? 'Atualizando cadastro...' : 'Salvando novo cadastro...',
-    text: 'Enviando dados para a planilha...',
-    allowOutsideClick: false,
-    didOpen: () => { Swal.showLoading(); }
+  const result = await Swal.fire({
+    title: `Confirmar ${actionVerb}`,
+    text: confirmText,
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: 'Sim',
+    cancelButtonText: 'Cancelar'
   });
+  if (!result.isConfirmed) return;
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Salvando...';
+  showStatus('<span class="spinner"></span>Enviando dados para a planilha...', 'info');
 
   try {
-    if (isUpdate) {
-      await updateRecord(existingRecord, data);
+    if (State.mode === 'update') {
+      await updateRecord(data);
     } else {
       await appendRecord(data);
     }
     Swal.fire({
-      title: 'Sucesso!',
-      html: `<b>${isUpdate ? 'Atualização' : 'Cadastro'}</b> realizado com sucesso!<br><br>Matrícula: ${data['Matrícula']}<br>Escola: ${data['Escola']}`,
-      icon: 'success'
+      icon: 'success',
+      title: `${actionVerb} realizado!`,
+      text: `Matrícula: ${data['Matrícula']} | Escola: ${data['Escola']}`,
     });
-    Debug.log(`${isUpdate ? 'Atualização' : 'Cadastro'} concluído para matrícula ${data['Matrícula']}`, 'info');
-    // Atualizar lista de registros em segundo plano
+    Debug.log(`${actionVerb} concluído para matrícula ${data['Matrícula']}`, 'info');
     await loadExistingRecords();
   } catch (err) {
-    Swal.fire({
-      title: 'Erro ao salvar',
-      text: (err.message || 'Falha desconhecida').replace(/<[^>]*>/g, ''),
-      icon: 'error'
-    });
     Debug.log('Erro ao salvar: ' + (err.message || JSON.stringify(err)), 'err');
+    Swal.fire('Erro', 'Falha ao salvar: ' + (err.message || 'erro desconhecido'), 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = State.mode === 'update' ? 'Atualizar Cadastro' : 'Criar Cadastro';
   }
 }
 
@@ -791,14 +915,17 @@ async function appendRecord(data) {
   }, 'Append registro');
 }
 
-async function updateRecord(existing, data) {
+async function updateRecord(data) {
+  // Localizar linha baseada na matrícula
   const matriculaClean = data['Matrícula'].replace('-', '');
   let rowIndex = -1;
   try {
-    const search = await gapi.client.sheets.spreadsheets.values.get({
-      spreadsheetId: CONFIG.SPREADSHEET_REGISTROS,
-      range: 'C:C'
-    });
+    const search = await withRetry(async () => {
+      return await gapi.client.sheets.spreadsheets.values.get({
+        spreadsheetId: CONFIG.SPREADSHEET_REGISTROS,
+        range: 'C:C'
+      });
+    }, 'Buscar linha para update');
     const rows = search.result.values || [];
     for (let i = 0; i < rows.length; i++) {
       if ((rows[i][0] || '').toString().replace('-', '') === matriculaClean) {
@@ -811,6 +938,7 @@ async function updateRecord(existing, data) {
   }
 
   if (rowIndex === -1) {
+    // Se não encontrou, faz append (segurança)
     Debug.log('Linha não encontrada para update, fazendo append', 'warn');
     return await appendRecord(data);
   }
@@ -834,8 +962,11 @@ async function updateRecord(existing, data) {
    ============================================================ */
 function setupListeners() {
   document.getElementById('googleLoginBtn').addEventListener('click', requestLogin);
-  document.getElementById('manualModeBtn').addEventListener('click', enableManualMode);
-  document.getElementById('logoutBtn').addEventListener('click', logout);
+  document.getElementById('logoutBtnVerify').addEventListener('click', logout);
+  document.getElementById('logoutBtnForm').addEventListener('click', logout);
+  document.getElementById('verifyBtn').addEventListener('click', handleVerification);
+  document.getElementById('backBtn').addEventListener('click', backToVerification);
+
   document.getElementById('cecapeForm').addEventListener('submit', (e) => {
     e.preventDefault();
     saveRecord();
@@ -844,6 +975,9 @@ function setupListeners() {
   // Máscaras
   document.getElementById('telefone').addEventListener('input', (e) => {
     e.target.value = maskTelefone(e.target.value);
+  });
+  document.getElementById('verifyMatricula').addEventListener('input', (e) => {
+    e.target.value = maskMatricula(e.target.value);
   });
   document.getElementById('matricula').addEventListener('input', (e) => {
     e.target.value = maskMatricula(e.target.value);
@@ -856,9 +990,18 @@ function setupListeners() {
 
   // Validação on blur
   const blurMap = {
-    nome: validateNome, email: validateEmail, matricula: validateMatricula,
-    telefone: validateTelefone, escola: validateEscola, periodo: validatePeriodo,
-    horario1: validateHorario, horario2: validateHorario, horario3: validateHorario, horario4: validateHorario
+    verifyEmail: validateEmail,
+    verifyMatricula: validateMatricula,
+    nome: validateNome,
+    email: validateEmail,
+    matricula: validateMatricula,
+    telefone: validateTelefone,
+    escola: validateEscola,
+    periodo: validatePeriodo,
+    horario1: validateHorario,
+    horario2: validateHorario,
+    horario3: validateHorario,
+    horario4: validateHorario
   };
   Object.entries(blurMap).forEach(([id, fn]) => {
     document.getElementById(id).addEventListener('blur', (e) => {
@@ -878,14 +1021,10 @@ window.addEventListener('load', () => {
   Debug.log('Config: Registros=' + CONFIG.SPREADSHEET_REGISTROS, 'info');
   Debug.log('Config: Escolas=' + CONFIG.SPREADSHEET_ESCOLAS, 'info');
 
-  // Inicializa gapi client (discovery) e GIS
+  // Inicializa gapi client e GIS
   initGapiClient().catch(err => {
     Debug.log('Falha ao inicializar gapi: ' + (err.message || err), 'err');
-    Swal.fire({
-      title: 'Aviso',
-      text: 'As APIs do Google não puderam ser inicializadas. Você pode usar o Modo Manual.',
-      icon: 'warning'
-    });
+    Swal.fire('Aviso', 'APIs do Google não carregaram. Recarregue a página e tente novamente.', 'warning');
   });
   initGisClient();
 });
