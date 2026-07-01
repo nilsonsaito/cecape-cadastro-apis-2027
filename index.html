@@ -156,7 +156,6 @@ let escolas = [];
 let modoAtual = 'NOVO'; // NOVO ou ATUALIZACAO
 let registroEncontrado = null;
 let linhaEncontrada = null;
-let isLoadingRegistros = false; // flag para evitar múltiplas requisições simultâneas
 
 // ===== COLUNAS =====
 const COL = {
@@ -202,7 +201,7 @@ function requestAccessToken() {
   const tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID,
     scope: SCOPE,
-    callback: async (resp) => {
+    callback: (resp) => {
       if (resp.error) {
         console.error('[LOGIN] Erro token:', resp);
         Swal.fire('Erro', 'Falha ao obter acesso.', 'error');
@@ -215,7 +214,7 @@ function requestAccessToken() {
         document.getElementById('userEmail').textContent = payload.email || '';
         document.getElementById('userEmail2').textContent = payload.email || '';
       } catch(e) { console.warn('[LOGIN] Não foi possível extrair email do token'); }
-      await onLoginSuccess();
+      onLoginSuccess();
     }
   });
   tokenClient.requestAccessToken({ prompt: 'consent' });
@@ -223,20 +222,8 @@ function requestAccessToken() {
 
 async function onLoginSuccess() {
   showPage('pageVerificacao');
-  // Mostrar loading enquanto carrega dados
-  Swal.fire({
-    title: 'Carregando...',
-    html: 'Aguarde enquanto os dados são carregados.',
-    allowOutsideClick: false,
-    didOpen: () => Swal.showLoading()
-  });
-  try {
-    await Promise.all([carregarEscolas(), carregarRegistros()]);
-  } catch (e) {
-    console.error('[LOGIN] Erro ao carregar dados:', e);
-  } finally {
-    Swal.close();
-  }
+  await carregarEscolas();
+  await carregarRegistros();
 }
 
 function logout() {
@@ -253,8 +240,6 @@ function logout() {
 
 // ===== CARREGAR DADOS =====
 async function carregarRegistros() {
-  if (isLoadingRegistros) return; // evita sobreposição
-  isLoadingRegistros = true;
   console.log('[DADOS] Carregando registros...');
   try {
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${REGISTROS_ID}/values/A1:J10000?access_token=${accessToken}`;
@@ -277,9 +262,6 @@ async function carregarRegistros() {
   } catch (e) {
     console.error('[DADOS] Erro ao carregar registros:', e);
     Swal.fire('Erro', 'Não foi possível carregar os registros.', 'error');
-    throw e;
-  } finally {
-    isLoadingRegistros = false;
   }
 }
 
@@ -292,8 +274,10 @@ async function carregarEscolas() {
     const sel = document.getElementById('fEscola');
     sel.innerHTML = '<option value="">Selecione...</option>';
     if (data.values && data.values.length > 0) {
+      // Assume primeira coluna com nome da escola (pode ter header)
       const vals = data.values.map(r => (r[0] || '').trim()).filter(v => v);
-      if (vals[0] && vals[0].toUpperCase().includes('ESCOLA')) vals.shift(); // ignora cabeçalho
+      // Se primeiro for header "ESCOLA" ou similar, pular
+      if (vals[0] && vals[0].toUpperCase().includes('ESCOLA')) vals.shift();
       escolas = vals;
       vals.forEach(v => {
         const opt = document.createElement('option');
@@ -305,7 +289,6 @@ async function carregarEscolas() {
   } catch (e) {
     console.error('[DADOS] Erro ao carregar escolas:', e);
     document.getElementById('fEscola').innerHTML = '<option value="">Erro ao carregar</option>';
-    throw e;
   }
 }
 
@@ -326,56 +309,33 @@ function showError(msg) {
 
 function isEmailEscola(email) {
   const local = email.split('@')[0].toLowerCase();
-  // Verifica prefixos com ou sem ponto, e padrão que inclui números
-  const prefixos = ['eme', 'emef', 'emei', 'emi'];
+  const prefixos = ['eme.', 'emef.', 'emei.', 'emi.', 'eme', 'emef', 'emei', 'emi'];
+  // Verifica prefixos com ou sem ponto
   for (const p of prefixos) {
-    if (local.startsWith(p + '.') || local.startsWith(p) && /^[a-z]{0,3}\./.test(local)) continue;
     if (local.startsWith(p)) return true;
   }
+  // Verifica padrão eme., emef., emei., emi. com ponto
   if (/^(eme|emef|emei|emi)\./i.test(local)) return true;
-  if (/^(eme|emef|emei|emi)\d/i.test(local)) return true;
+  if (/^(eme|emef|emei|emi)/i.test(local) && local.length > 3 && /\d/.test(local)) return true;
   return false;
 }
 
 function normalizarMatricula5(mat) {
+  // Remove hífen e não-dígitos, pega 5 primeiros
   const digits = String(mat || '').replace(/\D/g, '');
   return digits.substring(0, 5);
 }
 
-async function verificarRegistro() {
-  console.log('[VERIFICAÇÃO] Botão Verificar pressionado');
+function verificarRegistro() {
+  console.log('[VERIFICAÇÃO] Iniciando...');
   document.getElementById('errorMsg').style.display = 'none';
-
-  // Se registros ainda não carregados, carrega com loading e depois prossegue
-  if (registros.length === 0) {
-    console.log('[VERIFICAÇÃO] Registros vazios, carregando...');
-    Swal.fire({
-      title: 'Carregando dados...',
-      allowOutsideClick: false,
-      didOpen: () => Swal.showLoading()
-    });
-    try {
-      await carregarRegistros();
-    } catch (e) {
-      Swal.fire('Erro', 'Falha ao carregar dados. Tente novamente.', 'error');
-      return;
-    } finally {
-      Swal.close();
-    }
-    // Mesmo após carregar, se ainda vazio, informar
-    if (registros.length === 0) {
-      Swal.fire('Aviso', 'Nenhum registro encontrado na base.', 'warning');
-      return;
-    }
-  }
-
-  // Chama a lógica principal de verificação
-  executarVerificacao();
-}
-
-function executarVerificacao() {
-  console.log('[VERIFICAÇÃO] Executando verificação...');
   const tipo = document.querySelector('input[name="tipoVerificacao"]:checked').value;
+
+  if (registros.length === 0) {
+    console.log('[VERIFICAÇÃO] Registros não carregados, tentando recarregar...');
+    carregarRegistros().then(() => verificarRegistro());
+    return;
+  }
 
   if (tipo === 'email') {
     const email = document.getElementById('verifEmail').value.trim().toLowerCase();
@@ -459,8 +419,6 @@ function mostrarResultadoEncontrado(r) {
 // ===== FORMULÁRIO =====
 function abrirFormularioNovo(dados) {
   modoAtual = 'NOVO';
-  registroEncontrado = null;
-  linhaEncontrada = null;
   document.getElementById('formTitulo').textContent = 'Novo Cadastro';
   document.getElementById('foundInfo').style.display = 'none';
   document.getElementById('btnSalvar').textContent = 'Criar Cadastro';
@@ -529,6 +487,7 @@ async function salvarRegistro() {
   if (!validarDadosForm(dados)) return;
 
   if (modoAtual === 'NOVO') {
+    // Verificação rigorosa novamente antes de salvar
     const dup = verificarDuplicataRigorosa(dados);
     if (dup) {
       console.warn('[SALVAR] Duplicata detectada no salvamento:', dup);
@@ -609,12 +568,6 @@ function verificarDuplicataRigorosa(dados) {
 
 async function inserirRegistro(dados) {
   console.log('[SALVAR] Inserindo novo registro...');
-  // Mostrar loading durante a operação
-  Swal.fire({
-    title: 'Salvando...',
-    allowOutsideClick: false,
-    didOpen: () => Swal.showLoading()
-  });
   try {
     const values = [[
       dados[COL.NOME], dados[COL.EMAIL], dados[COL.MATRICULA], dados[COL.TELEFONE],
@@ -630,14 +583,12 @@ async function inserirRegistro(dados) {
     const result = await resp.json();
     if (result.error) throw result.error;
     console.log('[SALVAR] Registro inserido:', result);
-    Swal.fire('Sucesso', 'Cadastro criado com sucesso!', 'success');
-    await carregarRegistros(); // recarrega lista
-    voltarVerificacao();
+    Swal.fire('Sucesso', 'Cadastro criado com sucesso!', 'success').then(() => {
+      carregarRegistros().then(() => voltarVerificacao());
+    });
   } catch (e) {
     console.error('[SALVAR] Erro ao inserir:', e);
     Swal.fire('Erro', 'Falha ao criar cadastro: ' + (e.message || e), 'error');
-  } finally {
-    Swal.close();
   }
 }
 
@@ -647,11 +598,6 @@ async function atualizarRegistro(dados) {
     Swal.fire('Erro', 'Linha do registro não identificada.', 'error');
     return;
   }
-  Swal.fire({
-    title: 'Atualizando...',
-    allowOutsideClick: false,
-    didOpen: () => Swal.showLoading()
-  });
   try {
     const values = [[
       dados[COL.NOME], dados[COL.EMAIL], dados[COL.MATRICULA], dados[COL.TELEFONE],
@@ -668,14 +614,12 @@ async function atualizarRegistro(dados) {
     const result = await resp.json();
     if (result.error) throw result.error;
     console.log('[SALVAR] Registro atualizado:', result);
-    Swal.fire('Sucesso', 'Cadastro atualizado com sucesso!', 'success');
-    await carregarRegistros(); // recarrega lista
-    voltarVerificacao();
+    Swal.fire('Sucesso', 'Cadastro atualizado com sucesso!', 'success').then(() => {
+      carregarRegistros().then(() => voltarVerificacao());
+    });
   } catch (e) {
     console.error('[SALVAR] Erro ao atualizar:', e);
     Swal.fire('Erro', 'Falha ao atualizar cadastro: ' + (e.message || e), 'error');
-  } finally {
-    Swal.close();
   }
 }
 
