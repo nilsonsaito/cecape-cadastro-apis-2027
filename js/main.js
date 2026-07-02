@@ -1,440 +1,475 @@
-// ============================================================
-// MAIN.JS - Lógica Principal do Sistema CECAPE
-// ============================================================
+import { CONFIG } from './CONFIG.js';
+import * as Auth from './auth.js';
+import * as Sheets from './sheetsService.js';
 
-// Estado global
-let modoAtual = 'VERIFICACAO'; // VERIFICACAO ou FORMULARIO
-let registroEncontrado = null;
-let linhaEncontrada = null;
-let isRequesting = false;
+/* ============================================================
+   ELEMENTS
+   ============================================================ */
+const pageVerify = document.getElementById('pageVerify');
+const pageForm = document.getElementById('pageForm');
+const btnSignIn = document.getElementById('btnSignIn');
+const btnSignOut = document.getElementById('btnSignOut');
+const statusDot = document.getElementById('statusDot');
+const statusText = document.getElementById('statusText');
+const btnVerify = document.getElementById('btnVerify');
+const verifyInput = document.getElementById('verifyInput');
+const verifyError = document.getElementById('verifyError');
+const btnBack = document.getElementById('btnBack');
+const cadForm = document.getElementById('cadForm');
+const btnSave = document.getElementById('btnSave');
+const modeBanner = document.getElementById('modeBanner');
+const modeBadge = document.getElementById('modeBadge');
 
-// ============================================================
-// INICIALIZAÇÃO
-// ============================================================
+// Campos do formulário
+const fldNome = document.getElementById('fldNome');
+const fldMatricula = document.getElementById('fldMatricula');
+const fldEmail = document.getElementById('fldEmail');
+const fldTelefone = document.getElementById('fldTelefone');
+const fldEscola = document.getElementById('fldEscola');
+const fldFuncao = document.getElementById('fldFuncao');
+const fldObs = document.getElementById('fldObs');
+const fldRowIndex = document.getElementById('fldRowIndex');
 
-document.addEventListener('DOMContentLoaded', async () => {
-  console.log('🚀 Sistema CECAPE iniciando...');
-  
-  // Inicializar autenticação
-  await GoogleAuth.initGoogleAuth();
-  
-  // Verificar se já tem token
-  const temToken = await GoogleAuth.verificarTokenExistente();
-  
-  if (temToken) {
-    console.log('✅ Token encontrado, carregando dados...');
-    await carregarDadosIniciais();
-    mostrarPagina('formulario');
-  } else {
-    console.log('❌ Sem token, mostrando login...');
-    mostrarPagina('verificacao');
-  }
-});
+/* ============================================================
+   STATE
+   ============================================================ */
+let currentMode = 'new'; // 'new' or 'update'
+let currentRecord = null;
+let escolasCache = [];
 
-// ============================================================
-// NAVEGAÇÃO ENTRE PÁGINAS
-// ============================================================
+/* ============================================================
+   VALIDATION REGEX & BLOCKED DOMAINS
+   ============================================================ */
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MATRICULA_REGEX = /^[A-Za-z0-9]{3,20}$/;
+const PHONE_REGEX = /^\(\d{2}\)\s\d{5}-\d{4}$/;
 
-function mostrarPagina(pagina) {
-  const verificacao = document.getElementById('pagina-verificacao');
-  const formulario = document.getElementById('pagina-formulario');
-  
-  if (pagina === 'verificacao') {
-    verificacao.style.display = 'block';
-    formulario.style.display = 'none';
-    modoAtual = 'VERIFICACAO';
-  } else {
-    verificacao.style.display = 'none';
-    formulario.style.display = 'block';
-    modoAtual = 'FORMULARIO';
+const BLOCKED_DOMAINS = [
+  'escola.gov.br',
+  'educacao.gov.br',
+  'seed.pr.gov.br',
+  'escolas.pr.gov.br',
+  'pm.pr.gov.br',
+  '.gov.br'
+];
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+function isSchoolEmail(email) {
+  if (!email) return false;
+  const domain = email.split('@')[1]?.toLowerCase() || '';
+  return BLOCKED_DOMAINS.some(d => domain.endsWith(d));
+}
+
+function showError(field, errEl, msg) {
+  if (field) field.classList.add('invalid');
+  if (errEl) {
+    errEl.textContent = msg;
+    errEl.classList.add('show');
   }
 }
 
-function voltarParaVerificacao() {
-  limparFormulario();
-  registroEncontrado = null;
-  linhaEncontrada = null;
-  mostrarPagina('verificacao');
+function clearError(field, errEl) {
+  if (field) field.classList.remove('invalid');
+  if (errEl) {
+    errEl.textContent = '';
+    errEl.classList.remove('show');
+  }
 }
 
-// ============================================================
-// PÁGINA 1: VERIFICAÇÃO
-// ============================================================
-
-async function verificarRegistro() {
-  if (isRequesting) {
-    console.warn('⚠️ Requisição já em andamento...');
-    return;
-  }
-
-  const tipoVerificacao = document.getElementById('tipo-verificacao').value;
-  const valor = document.getElementById('valor-verificacao').value.trim();
-
-  // Validar entrada
-  if (!valor) {
-    Swal.fire({
-      icon: 'warning',
-      title: 'Campo vazio',
-      text: 'Digite um e-mail ou matrícula para verificar.'
-    });
-    return;
-  }
-
-  // Validar formato
-  if (tipoVerificacao === 'email') {
-    if (!validarEmail(valor)) {
-      Swal.fire({
-        icon: 'error',
-        title: 'E-mail inválido',
-        text: 'Use um e-mail @scseduca.com.br válido.'
-      });
-      return;
-    }
-    
-    if (valor.toLowerCase().includes('eme.') || 
-        valor.toLowerCase().includes('emef.') ||
-        valor.toLowerCase().includes('emei.') ||
-        valor.toLowerCase().includes('emi.')) {
-      Swal.fire({
-        icon: 'error',
-        title: 'E-mail de escola não permitido',
-        text: 'Use seu e-mail pessoal institucional, não o da escola.'
-      });
-      return;
-    }
-  } else {
-    if (!validarMatricula(valor)) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Matrícula inválida',
-        text: 'Digite 5 dígitos (ex: 12345).'
-      });
-      return;
-    }
-  }
-
-  // Mostrar loading
-  isRequesting = true;
-  Swal.fire({
-    title: 'Verificando...',
-    html: 'Buscando registro na planilha...',
-    allowOutsideClick: false,
-    didOpen: () => {
-      Swal.showLoading();
-    }
+function clearAllErrors() {
+  const errorFields = ['errNome','errMatricula','errEmail','errTelefone','errEscola','errFuncao'];
+  errorFields.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = ''; el.classList.remove('show'); }
   });
-
-  try {
-    // Buscar na planilha
-    const registros = await SheetsService.buscarRegistros();
-    
-    // Procurar registro
-    let encontrado = null;
-    
-    if (tipoVerificacao === 'email') {
-      encontrado = registros.find(r => 
-        normalizarEmail(r['E-MAIL']) === normalizarEmail(valor)
-      );
-    } else {
-      const matriculaDigitada = valor.replace('-', '').substring(0, 5);
-      encontrado = registros.find(r => {
-        const matriculaRegistro = (r['MATRÍCULA'] || '').replace('-', '').substring(0, 5);
-        return matriculaRegistro === matriculaDigitada;
-      });
-    }
-
-    // Fechar loading
-    Swal.close();
-    isRequesting = false;
-
-    if (encontrado) {
-      // Registro encontrado - modo ATUALIZAÇÃO
-      console.log('✅ Registro encontrado:', encontrado);
-      registroEncontrado = encontrado;
-      
-      Swal.fire({
-        icon: 'info',
-        title: 'Registro encontrado!',
-        text: `Você pode atualizar os dados de ${encontrado.NOME}.`,
-        confirmButtonText: 'Continuar'
-      }).then(() => {
-        abrirFormularioEdicao(encontrado);
-      });
-    } else {
-      // Registro não encontrado - modo NOVO
-      console.log('ℹ️ Registro não encontrado, modo NOVO');
-      registroEncontrado = null;
-      
-      Swal.fire({
-        icon: 'success',
-        title: 'Novo cadastro',
-        text: 'Vamos criar um novo registro.',
-        confirmButtonText: 'Continuar'
-      }).then(() => {
-        abrirFormularioNovo(tipoVerificacao, valor);
-      });
-    }
-  } catch (erro) {
-    console.error('❌ Erro ao verificar:', erro);
-    Swal.close();
-    isRequesting = false;
-    
-    Swal.fire({
-      icon: 'error',
-      title: 'Erro na verificação',
-      text: erro.message || 'Não foi possível verificar o registro.'
-    });
-  }
+  [fldNome, fldMatricula, fldEmail, fldTelefone, fldEscola, fldFuncao].forEach(el => el?.classList.remove('invalid'));
 }
 
-// ============================================================
-// PÁGINA 2: FORMULÁRIO - MODO NOVO
-// ============================================================
+function validateForm() {
+  clearAllErrors();
+  let valid = true;
 
-function abrirFormularioNovo(tipoVerificacao, valor) {
-  console.log('📝 Abrindo formulário NOVO');
-  
-  // Limpar formulário
-  limparFormulario();
-  
-  // Preencher campo de verificação
-  if (tipoVerificacao === 'email') {
-    document.getElementById('email').value = valor;
-    document.getElementById('email').disabled = false;
-  } else {
-    document.getElementById('matricula').value = valor;
-    document.getElementById('matricula').disabled = false;
+  const nome = fldNome.value.trim();
+  const matricula = fldMatricula.value.trim();
+  const email = fldEmail.value.trim();
+  const telefone = fldTelefone.value.trim();
+  const escola = fldEscola.value;
+  const funcao = fldFuncao.value;
+
+  if (nome.length < 3) {
+    showError(fldNome, document.getElementById('errNome'), 'Mínimo 3 caracteres.');
+    valid = false;
   }
-  
-  // Habilitar campos
-  document.getElementById('email').disabled = false;
-  document.getElementById('matricula').disabled = false;
-  
-  // Atualizar título e botão
-  document.getElementById('form-titulo').textContent = '➕ Novo Cadastro';
-  document.getElementById('btn-salvar').textContent = 'Criar Cadastro';
-  document.getElementById('btn-salvar').onclick = () => salvarRegistro('novo');
-  
-  // Mostrar formulário
-  mostrarPagina('formulario');
-}
-
-// ============================================================
-// PÁGINA 2: FORMULÁRIO - MODO EDIÇÃO
-// ============================================================
-
-function abrirFormularioEdicao(registro) {
-  console.log('✏️ Abrindo formulário EDIÇÃO');
-  
-  // Limpar formulário
-  limparFormulario();
-  
-  // Preencher com dados existentes
-  document.getElementById('nome').value = registro.NOME || '';
-  document.getElementById('email').value = registro['E-MAIL'] || '';
-  document.getElementById('matricula').value = registro.MATRÍCULA || '';
-  document.getElementById('telefone').value = registro.TELEFONE || '';
-  document.getElementById('escola').value = registro.ESCOLA || '';
-  document.getElementById('periodo').value = registro['PERÍODO DE TRABALHO'] || '';
-  document.getElementById('entrada').value = registro['HORÁRIO DE ENTRADA'] || '';
-  document.getElementById('saida-intervalo').value = registro['SAÍDA (INTERVALO)'] || '';
-  document.getElementById('volta-intervalo').value = registro['ENTRADA (VOLTA DO INTERVALO)'] || '';
-  document.getElementById('saida').value = registro.SAÍDA || '';
-  
-  // Desabilitar campos de identificação
-  document.getElementById('email').disabled = true;
-  document.getElementById('matricula').disabled = true;
-  
-  // Atualizar título e botão
-  document.getElementById('form-titulo').textContent = '✏️ Atualizar Cadastro';
-  document.getElementById('btn-salvar').textContent = 'Atualizar Cadastro';
-  document.getElementById('btn-salvar').onclick = () => salvarRegistro('atualizar');
-  
-  // Mostrar formulário
-  mostrarPagina('formulario');
-}
-
-// ============================================================
-// SALVAR REGISTRO
-// ============================================================
-
-async function salvarRegistro(tipo) {
-  console.log(`💾 Salvando registro (${tipo})...`);
-  
-  // Validar campos
-  if (!validarFormulario()) {
-    return;
+  if (!MATRICULA_REGEX.test(matricula)) {
+    showError(fldMatricula, document.getElementById('errMatricula'), 'Matrícula inválida (3 a 20 alfanuméricos).');
+    valid = false;
   }
-
-  // Coletar dados
-  const dados = {
-    NOME: document.getElementById('nome').value.trim(),
-    'E-MAIL': document.getElementById('email').value.trim(),
-    MATRÍCULA: document.getElementById('matricula').value.trim(),
-    TELEFONE: document.getElementById('telefone').value.trim(),
-    ESCOLA: document.getElementById('escola').value,
-    'PERÍODO DE TRABALHO': document.getElementById('periodo').value,
-    'HORÁRIO DE ENTRADA': document.getElementById('entrada').value.trim(),
-    'SAÍDA (INTERVALO)': document.getElementById('saida-intervalo').value.trim(),
-    'ENTRADA (VOLTA DO INTERVALO)': document.getElementById('volta-intervalo').value.trim(),
-    SAÍDA: document.getElementById('saida').value.trim()
-  };
-
-  // Confirmar com SweetAlert
-  const resultado = await Swal.fire({
-    icon: 'question',
-    title: tipo === 'novo' ? 'Criar cadastro?' : 'Atualizar cadastro?',
-    html: `<strong>${dados.NOME}</strong><br>Matrícula: ${dados.MATRÍCULA}`,
-    showCancelButton: true,
-    confirmButtonText: tipo === 'novo' ? 'Criar' : 'Atualizar',
-    cancelButtonText: 'Cancelar'
-  });
-
-  if (!resultado.isConfirmed) {
-    console.log('❌ Operação cancelada pelo usuário');
-    return;
+  if (!EMAIL_REGEX.test(email)) {
+    showError(fldEmail, document.getElementById('errEmail'), 'E-mail inválido.');
+    valid = false;
+  } else if (isSchoolEmail(email)) {
+    showError(fldEmail, document.getElementById('errEmail'), 'E-mails de escola não são permitidos.');
+    valid = false;
   }
-
-  // Mostrar loading
-  Swal.fire({
-    title: 'Salvando...',
-    html: 'Enviando dados para a planilha...',
-    allowOutsideClick: false,
-    didOpen: () => {
-      Swal.showLoading();
-    }
-  });
-
-  try {
-    if (tipo === 'novo') {
-      // Verificar duplicata antes de criar
-      const registros = await SheetsService.buscarRegistros();
-      const emailExiste = registros.some(r => 
-        normalizarEmail(r['E-MAIL']) === normalizarEmail(dados['E-MAIL'])
-      );
-      const matriculaExiste = registros.some(r => {
-        const matriculaRegistro = (r['MATRÍCULA'] || '').replace('-', '').substring(0, 5);
-        const matriculaDigitada = dados.MATRÍCULA.replace('-', '').substring(0, 5);
-        return matriculaRegistro === matriculaDigitada;
-      });
-
-      if (emailExiste || matriculaExiste) {
-        Swal.close();
-        Swal.fire({
-          icon: 'warning',
-          title: 'Registro duplicado',
-          text: 'Este e-mail ou matrícula já foi cadastrado. Você será redirecionado para atualizar.',
-          confirmButtonText: 'OK'
-        }).then(() => {
-          const registroExistente = registros.find(r => 
-            normalizarEmail(r['E-MAIL']) === normalizarEmail(dados['E-MAIL']) ||
-            (r['MATRÍCULA'] || '').replace('-', '').substring(0, 5) === dados.MATRÍCULA.replace('-', '').substring(0, 5)
-          );
-          abrirFormularioEdicao(registroExistente);
-        });
-        return;
-      }
-
-      // Criar novo
-      await SheetsService.adicionarRegistro(dados);
-      
-      Swal.close();
-      Swal.fire({
-        icon: 'success',
-        title: 'Cadastro criado!',
-        text: `${dados.NOME} foi cadastrado com sucesso.`,
-        confirmButtonText: 'OK'
-      }).then(() => {
-        voltarParaVerificacao();
-      });
-    } else {
-      // Atualizar existente
-      await SheetsService.atualizarRegistro(registroEncontrado, dados);
-      
-      Swal.close();
-      Swal.fire({
-        icon: 'success',
-        title: 'Cadastro atualizado!',
-        text: `${dados.NOME} foi atualizado com sucesso.`,
-        confirmButtonText: 'OK'
-      }).then(() => {
-        voltarParaVerificacao();
-      });
-    }
-  } catch (erro) {
-    console.error('❌ Erro ao salvar:', erro);
-    Swal.close();
-    Swal.fire({
-      icon: 'error',
-      title: 'Erro ao salvar',
-      text: erro.message || 'Não foi possível salvar o registro.'
-    });
-  }
-}
-
-// ============================================================
-// FUNÇÕES AUXILIARES
-// ============================================================
-
-function limparFormulario() {
-  document.getElementById('nome').value = '';
-  document.getElementById('email').value = '';
-  document.getElementById('matricula').value = '';
-  document.getElementById('telefone').value = '';
-  document.getElementById('escola').value = '';
-  document.getElementById('periodo').value = '';
-  document.getElementById('entrada').value = '';
-  document.getElementById('saida-intervalo').value = '';
-  document.getElementById('volta-intervalo').value = '';
-  document.getElementById('saida').value = '';
-}
-
-function validarFormulario() {
-  const nome = document.getElementById('nome').value.trim();
-  const email = document.getElementById('email').value.trim();
-  const matricula = document.getElementById('matricula').value.trim();
-  const telefone = document.getElementById('telefone').value.trim();
-  const escola = document.getElementById('escola').value;
-  const periodo = document.getElementById('periodo').value;
-  const entrada = document.getElementById('entrada').value.trim();
-  const saidaIntervalo = document.getElementById('saida-intervalo').value.trim();
-  const voltaIntervalo = document.getElementById('volta-intervalo').value.trim();
-  const saida = document.getElementById('saida').value.trim();
-
-  if (!nome) {
-    Swal.fire('Erro', 'Nome é obrigatório', 'error');
-    return false;
-  }
-  if (!email || !validarEmail(email)) {
-    Swal.fire('Erro', 'E-mail inválido', 'error');
-    return false;
-  }
-  if (!matricula || !validarMatricula(matricula)) {
-    Swal.fire('Erro', 'Matrícula inválida', 'error');
-    return false;
-  }
-  if (!telefone || !validarTelefone(telefone)) {
-    Swal.fire('Erro', 'Telefone inválido', 'error');
-    return false;
+  if (!PHONE_REGEX.test(telefone)) {
+    showError(fldTelefone, document.getElementById('errTelefone'), 'Telefone inválido (formato: (99) 99999-9999).');
+    valid = false;
   }
   if (!escola) {
-    Swal.fire('Erro', 'Escola é obrigatória', 'error');
-    return false;
+    showError(fldEscola, document.getElementById('errEscola'), 'Selecione a escola.');
+    valid = false;
   }
-  if (!periodo) {
-    Swal.fire('Erro', 'Período é obrigatório', 'error');
-    return false;
+  if (!funcao) {
+    showError(fldFuncao, document.getElementById('errFuncao'), 'Selecione a função.');
+    valid = false;
   }
-  if (!entrada || !validarHorario(entrada)) {
-    Swal.fire('Erro', 'Horário de entrada inválido', 'error');
-    return false;
+  return valid;
+}
+
+/* ============================================================
+   INPUT MASKS
+   ============================================================ */
+function applyPhoneMask(e) {
+  let value = e.target.value.replace(/\D/g, '');
+  if (value.length > 11) value = value.slice(0, 11);
+  if (value.length > 0) {
+    value = value.replace(/^(\d{2})(\d)/, '($1) $2');
+    value = value.replace(/(\d{5})(\d)/, '$1-$2');
   }
-  if (!saidaIntervalo || !validarHorario(saidaIntervalo)) {
-    Swal.fire('Erro', 'Saída (intervalo) inválida', 'error');
-    return false;
+  e.target.value = value;
+}
+
+function applyMatriculaRestriction(e) {
+  let value = e.target.value.replace(/[^a-zA-Z0-9]/g, '');
+  if (value.length > 20) value = value.slice(0, 20);
+  e.target.value = value.toUpperCase();
+}
+
+/* ============================================================
+   AUTH UI
+   ============================================================ */
+function updateAuthUI(signedIn) {
+  if (signedIn) {
+    statusDot.classList.add('ok');
+    statusText.textContent = 'Autenticado';
+    btnSignIn.classList.add('hidden');
+    btnSignOut.classList.remove('hidden');
+  } else {
+    statusDot.classList.remove('ok');
+    statusText.textContent = 'Não autenticado';
+    btnSignIn.classList.remove('hidden');
+    btnSignOut.classList.add('hidden');
   }
-  if (!voltaIntervalo || !validarHorario(voltaIntervalo)) {
-    Swal.fire('Erro', 'Volta do intervalo inválida', 'error');
-    return false;
+}
+
+/* ============================================================
+   ESCOLAS DROPDOWN
+   ============================================================ */
+async function loadEscolas() {
+  try {
+    const escolas = await Sheets.getEscolas();
+    escolasCache = escolas || [];
+    fldEscola.innerHTML = '<option value="">Selecione...</option>';
+    escolasCache.forEach(esc => {
+      const nome = esc.NOME || '';
+      if (nome) {
+        const opt = document.createElement('option');
+        opt.value = nome;
+        opt.textContent = nome;
+        fldEscola.appendChild(opt);
+      }
+    });
+  } catch (e) {
+    console.error('Erro ao carregar escolas:', e);
+    Swal.fire({ icon: 'warning', title: 'Aviso', text: 'Não foi possível carregar escolas.' });
   }
-  if (!saida || !validarHorario(saida))
+}
+
+/* ============================================================
+   PAGE NAVIGATION
+   ============================================================ */
+function showPage(page) {
+  if (page === 'verify') {
+    pageVerify.classList.remove('hidden');
+    pageForm.classList.add('hidden');
+  } else {
+    pageVerify.classList.add('hidden');
+    pageForm.classList.remove('hidden');
+  }
+}
+
+/* ============================================================
+   VERIFY RECORD (PAGE 1)
+   ============================================================ */
+async function verificarRegistro() {
+  verifyError.classList.remove('show');
+  const value = verifyInput.value.trim();
+
+  if (!value) {
+    verifyError.textContent = 'Informe e-mail ou matrícula.';
+    verifyError.classList.add('show');
+    return;
+  }
+
+  const isEmail = value.includes('@');
+  if (isEmail) {
+    if (!EMAIL_REGEX.test(value)) {
+      verifyError.textContent = 'E-mail inválido.';
+      verifyError.classList.add('show');
+      return;
+    }
+    if (isSchoolEmail(value)) {
+      verifyError.textContent = 'E-mails de escola não são permitidos.';
+      verifyError.classList.add('show');
+      Swal.fire({ icon: 'warning', title: 'Aviso', text: 'Use seu e-mail pessoal.' });
+      return;
+    }
+  } else {
+    if (!MATRICULA_REGEX.test(value)) {
+      verifyError.textContent = 'Matrícula inválida (3 a 20 alfanuméricos).';
+      verifyError.classList.add('show');
+      return;
+    }
+  }
+
+  if (!Auth.isSignedIn()) {
+    Swal.fire({ icon: 'info', title: 'Login necessário', text: 'Clique em "Entrar com Google" para continuar.' });
+    return;
+  }
+
+  btnVerify.disabled = true;
+  btnVerify.innerHTML = '<span class="loader"></span> Verificando...';
+
+  try {
+    const registros = await Sheets.getRegistros();
+    const found = registros.find(r => {
+      const emailReg = (r.EMAIL || '').toLowerCase();
+      const matReg = (r.MATRICULA || '').toLowerCase();
+      return emailReg === value.toLowerCase() || matReg === value.toLowerCase();
+    });
+
+    if (found) {
+      currentMode = 'update';
+      currentRecord = found;
+      await openForm('update', found);
+    } else {
+      currentMode = 'new';
+      currentRecord = null;
+      await openForm('new', null, value);
+    }
+  } catch (err) {
+    console.error('Erro na verificação:', err);
+    Swal.fire({ icon: 'error', title: 'Erro', text: 'Falha ao consultar registros.' });
+  } finally {
+    btnVerify.disabled = false;
+    btnVerify.innerText = 'Verificar';
+  }
+}
+
+/* ============================================================
+   OPEN FORM (PAGE 2)
+   ============================================================ */
+async function openForm(mode, record, prefillValue = '') {
+  clearAllErrors();
+  cadForm.reset();
+
+  if (mode === 'update') {
+    document.getElementById('formTitle').textContent = 'Atualizar Cadastro';
+    document.getElementById('formSubtitle').textContent = 'Atualize os dados abaixo.';
+    modeBanner.className = 'mode-banner update';
+    modeBadge.className = 'badge badge-update';
+    modeBadge.textContent = 'ATUALIZAÇÃO';
+
+    fldRowIndex.value = record._rowNumber || '';
+    fldNome.value = record.NOME || '';
+    fldMatricula.value = record.MATRICULA || '';
+    fldEmail.value = record.EMAIL || '';
+    fldTelefone.value = record.TELEFONE || '';
+    fldEscola.value = record.ESCOLA || '';
+    fldFuncao.value = record.FUNCAO || '';
+    fldObs.value = record.OBS || '';
+  } else {
+    document.getElementById('formTitle').textContent = 'Novo Cadastro';
+    document.getElementById('formSubtitle').textContent = 'Preencha os campos abaixo.';
+    modeBanner.className = 'mode-banner new';
+    modeBadge.className = 'badge badge-new';
+    modeBadge.textContent = 'NOVO CADASTRO';
+
+    fldRowIndex.value = '';
+    if (prefillValue.includes('@')) {
+      fldEmail.value = prefillValue;
+    } else if (prefillValue) {
+      fldMatricula.value = prefillValue;
+    }
+  }
+
+  showPage('form');
+}
+
+/* ============================================================
+   SALVAR REGISTRO (FORM SUBMIT)
+   ============================================================ */
+async function salvarRegistro(e) {
+  e.preventDefault();
+
+  if (!validateForm()) {
+    Swal.fire({ icon: 'error', title: 'Formulário inválido', text: 'Corrija os campos destacados.' });
+    return;
+  }
+
+  if (!Auth.isSignedIn()) {
+    Swal.fire({ icon: 'info', title: 'Autenticação necessária', text: 'Faça login para salvar.' });
+    return;
+  }
+
+  const payload = {
+    NOME: fldNome.value.trim(),
+    MATRICULA: fldMatricula.value.trim(),
+    EMAIL: fldEmail.value.trim(),
+    TELEFONE: fldTelefone.value.trim(),
+    ESCOLA: fldEscola.value,
+    FUNCAO: fldFuncao.value,
+    OBS: fldObs.value.trim(),
+    ATUALIZADO_EM: new Date().toISOString()
+  };
+
+  const confirmText = currentMode === 'update'
+    ? 'Deseja atualizar este cadastro?'
+    : 'Deseja criar este novo cadastro?';
+
+  const confirmRes = await Swal.fire({
+    icon: 'question',
+    title: 'Confirmação',
+    text: confirmText,
+    showCancelButton: true,
+    confirmButtonText: 'Sim, salvar',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#16a34a'
+  });
+
+  if (!confirmRes.isConfirmed) return;
+
+  btnSave.disabled = true;
+  btnSave.innerHTML = '<span class="loader"></span> Salvando...';
+
+  try {
+    if (currentMode === 'update') {
+      const rowNumber = parseInt(fldRowIndex.value, 10);
+      await Sheets.updateRegistro(rowNumber, payload);
+    } else {
+      // Verificar duplicata antes de criar (opcional, sheetsService já faz? Decidimos verificar aqui mesmo)
+      const duplicata = await Sheets.checkDuplicateRegistro({ EMAIL: payload.EMAIL, MATRICULA: payload.MATRICULA });
+      if (duplicata) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Registro existente',
+          text: 'Este e-mail ou matrícula já está cadastrado.',
+          confirmButtonText: 'Ir para edição'
+        }).then(() => {
+          currentMode = 'update';
+          currentRecord = duplicata;
+          openForm('update', duplicata);
+        });
+        btnSave.disabled = false;
+        btnSave.innerText = 'Salvar';
+        return;
+      }
+      await Sheets.appendRegistro(payload);
+    }
+
+    await Swal.fire({
+      icon: 'success',
+      title: 'Sucesso!',
+      text: currentMode === 'update' ? 'Cadastro atualizado!' : 'Cadastro realizado!',
+      timer: 2000,
+      showConfirmButton: false
+    });
+
+    cadForm.reset();
+    currentRecord = null;
+    showPage('verify');
+    verifyInput.value = '';
+  } catch (err) {
+    console.error('Erro ao salvar:', err);
+    Swal.fire({ icon: 'error', title: 'Erro ao salvar', text: err.message });
+  } finally {
+    btnSave.disabled = false;
+    btnSave.innerText = 'Salvar';
+  }
+}
+
+/* ============================================================
+   INITIALIZATION
+   ============================================================ */
+async function init() {
+  try {
+    await Auth.initAuth(CONFIG);
+    const signed = Auth.isSignedIn();
+    updateAuthUI(signed);
+    if (signed) {
+      await loadEscolas();
+    }
+    // Exibe a página de verificação como padrão
+    showPage('verify');
+  } catch (e) {
+    console.error('Falha na inicialização:', e);
+  }
+
+  // Bind mask events
+  fldTelefone.addEventListener('input', applyPhoneMask);
+  fldMatricula.addEventListener('input', applyMatriculaRestriction);
+
+  // Limpar erros ao digitar nos campos
+  const fields = [fldNome, fldMatricula, fldEmail, fldTelefone, fldEscola, fldFuncao];
+  fields.forEach(field => {
+    if (!field) return;
+    field.addEventListener('input', () => {
+      const errId = 'err' + field.id.replace('fld', '');
+      clearError(field, document.getElementById(errId));
+    });
+  });
+
+  verifyInput.addEventListener('input', () => {
+    verifyError.classList.remove('show');
+    verifyError.textContent = '';
+  });
+
+  // Botão voltar
+  btnBack.addEventListener('click', () => {
+    cadForm.reset();
+    clearAllErrors();
+    currentRecord = null;
+    showPage('verify');
+  });
+
+  // Login / Logout
+  btnSignIn.addEventListener('click', async () => {
+    try {
+      await Auth.signIn();
+      updateAuthUI(true);
+      await loadEscolas();
+    } catch (e) {
+      Swal.fire({ icon: 'error', title: 'Falha na autenticação', text: e.message });
+    }
+  });
+
+  btnSignOut.addEventListener('click', async () => {
+    try {
+      await Auth.signOut();
+      updateAuthUI(false);
+    } catch (e) {
+      console.error('Erro ao sair:', e);
+    }
+  });
+
+  // Verificar registro
+  btnVerify.addEventListener('click', verificarRegistro);
+
+  // Salvar formulário
+  cadForm.addEventListener('submit', salvarRegistro);
+}
+
+// Aguarda DOM pronto e inicia
+document.addEventListener('DOMContentLoaded', init);
