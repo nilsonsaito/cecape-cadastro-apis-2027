@@ -1,635 +1,831 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CECAPE - Cadastro</title>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
-  body { background: linear-gradient(135deg, #1e3c72, #2a5298); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-  .container { background: #fff; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); width: 100%; max-width: 640px; padding: 30px; }
-  h1 { color: #1e3c72; text-align: center; margin-bottom: 8px; font-size: 24px; }
-  h2 { color: #2a5298; margin-bottom: 20px; font-size: 18px; text-align: center; }
-  .page { display: none; }
-  .page.active { display: block; }
-  label { display: block; font-weight: 600; color: #333; margin: 12px 0 6px; font-size: 14px; }
-  input, select { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; transition: border-color .2s; }
-  input:focus, select:focus { outline: none; border-color: #2a5298; }
-  input[readonly] { background: #f0f0f0; color: #666; }
-  .row { display: flex; gap: 12px; flex-wrap: wrap; }
-  .row > div { flex: 1; min-width: 140px; }
-  .radio-group { display: flex; gap: 20px; margin: 10px 0; }
-  .radio-group label { display: flex; align-items: center; gap: 6px; margin: 0; font-weight: 500; cursor: pointer; }
-  button { background: #2a5298; color: #fff; border: none; padding: 12px 24px; border-radius: 6px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 20px; transition: background .2s; }
-  button:hover { background: #1e3c72; }
-  button.secondary { background: #6c757d; margin-left: 10px; }
-  button.secondary:hover { background: #5a6268; }
-  .btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
-  #loginBtn { display: block; margin: 20px auto 0; }
-  .info-box { background: #e7f1ff; border-left: 4px solid #2a5298; padding: 12px; border-radius: 4px; margin: 15px 0; font-size: 13px; color: #333; }
-  .found-box { background: #d4edda; border-left: 4px solid #28a745; padding: 12px; border-radius: 4px; margin: 15px 0; font-size: 13px; }
-  .error-box { background: #f8d7da; border-left: 4px solid #dc3545; padding: 12px; border-radius: 4px; margin: 15px 0; font-size: 13px; display: none; }
-  .user-info { text-align: right; font-size: 12px; color: #666; margin-bottom: 10px; }
-  .logout-link { color: #dc3545; cursor: pointer; text-decoration: underline; }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistema de Cadastro</title>
+
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <!-- Google API Client -->
+  <script src="https://apis.google.com/js/api.js"></script>
+
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --success: #16a34a;
+      --danger: #dc2626;
+      --warning: #d97706;
+      --bg: #f1f5f9;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --radius: 12px;
+      --shadow: 0 10px 25px rgba(0,0,0,0.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: #fff;
+      padding: 18px 24px;
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    header h1 { font-size: 1.3rem; font-weight: 600; }
+
+    .header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+    .btn {
+      border: none;
+      cursor: pointer;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-success:hover { filter: brightness(0.92); }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-danger:hover { filter: brightness(0.92); }
+    .btn-ghost { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,0.4); }
+    .btn-ghost:hover { background: rgba(255,255,255,0.15); }
+    .btn-secondary { background: #e2e8f0; color: var(--text); }
+    .btn-secondary:hover { background: #cbd5e1; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    main {
+      flex: 1;
+      padding: 28px 16px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 28px;
+      width: 100%;
+      max-width: 720px;
+    }
+
+    .card h2 {
+      font-size: 1.25rem;
+      margin-bottom: 6px;
+      color: var(--primary-dark);
+    }
+    .card .subtitle { color: var(--muted); margin-bottom: 22px; font-size: 0.92rem; }
+
+    .form-group { margin-bottom: 16px; }
+    label {
+      display: block;
+      font-size: 0.88rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #334155;
+    }
+    label .req { color: var(--danger); }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      background: #fff;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+    }
+    input.invalid, select.invalid {
+      border-color: var(--danger);
+      box-shadow: 0 0 0 3px rgba(220,38,38,0.12);
+    }
+    .hint { font-size: 0.78rem; color: var(--muted); margin-top: 4px; }
+    .error-msg { font-size: 0.78rem; color: var(--danger); margin-top: 4px; display: none; }
+    .error-msg.show { display: block; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } }
+
+    .actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; flex-wrap: wrap; }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .badge-new { background: #dcfce7; color: #166534; }
+    .badge-update { background: #fef3c7; color: #92400e; }
+
+    .hidden { display: none !important; }
+
+    /* Debug panel */
+    #debugPanel {
+      position: fixed;
+      bottom: 0;
+      right: 0;
+      width: 380px;
+      max-height: 280px;
+      background: #0f172a;
+      color: #e2e8f0;
+      font-family: 'Consolas', monospace;
+      font-size: 0.78rem;
+      border-top-left-radius: 10px;
+      box-shadow: -4px -4px 16px rgba(0,0,0,0.3);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+    }
+    #debugPanel .dbg-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      background: #1e293b;
+      cursor: pointer;
+      border-top-left-radius: 10px;
+    }
+    #debugPanel .dbg-header span { font-weight: 700; letter-spacing: 0.5px; }
+    #debugPanel .dbg-body {
+      overflow-y: auto;
+      padding: 8px 12px;
+      flex: 1;
+    }
+    #debugPanel .dbg-body .log-line { padding: 2px 0; border-bottom: 1px dashed #334155; }
+    #debugPanel .log-info { color: #93c5fd; }
+    #debugPanel .log-ok { color: #86efac; }
+    #debugPanel .log-warn { color: #fcd34d; }
+    #debugPanel .log-err { color: #fca5a5; }
+    #debugPanel.collapsed .dbg-body { display: none; }
+    @media (max-width: 600px) {
+      #debugPanel { width: 100%; }
+    }
+
+    .status-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: #f87171; display: inline-block;
+    }
+    .status-dot.ok { background: #4ade80; }
+
+    .loader {
+      border: 3px solid #e2e8f0;
+      border-top: 3px solid var(--primary);
+      border-radius: 50%;
+      width: 18px; height: 18px;
+      animation: spin 0.8s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .mode-banner {
+      padding: 10px 14px;
+      border-radius: 8px;
+      margin-bottom: 18px;
+      font-size: 0.88rem;
+      font-weight: 600;
+    }
+    .mode-banner.new { background: #dcfce7; color: #166534; }
+    .mode-banner.update { background: #fef3c7; color: #92400e; }
+  </style>
 </head>
 <body>
-<div class="container">
-  <h1>CECAPE</h1>
-  <h2>Sistema de Cadastro</h2>
 
-  <!-- PÁGINA LOGIN -->
-  <div id="pageLogin" class="page active">
-    <div class="info-box">Faça login com sua conta Google (@scseduca.com.br) para acessar o sistema.</div>
-    <div id="loginBtn"><div id="googleBtn" style="display:flex;justify-content:center;"></div></div>
+  <header>
+    <h1>📋 Sistema de Cadastro</h1>
+    <div class="header-actions">
+      <span id="authStatus" style="font-size:0.85rem; display:flex; align-items:center; gap:6px;">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">Não autenticado</span>
+      </span>
+      <button id="btnSignIn" class="btn btn-ghost">Entrar com Google</button>
+      <button id="btnSignOut" class="btn btn-ghost hidden">Sair</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- PÁGINA 1: Verificação -->
+    <section id="pageVerify" class="card">
+      <h2>Verificação de Cadastro</h2>
+      <p class="subtitle">Informe seu e-mail pessoal ou matrícula para verificar se você já está cadastrado.</p>
+
+      <div class="form-group">
+        <label for="verifyInput">E-mail pessoal ou Matrícula <span class="req">*</span></label>
+        <input type="text" id="verifyInput" placeholder="exemplo@gmail.com ou 123456" autocomplete="off" />
+        <div class="hint">Use e-mail pessoal. E-mails institucionais de escola não são permitidos.</div>
+        <div class="error-msg" id="verifyError"></div>
+      </div>
+
+      <div class="actions">
+        <button id="btnVerify" class="btn btn-primary">Verificar</button>
+      </div>
+    </section>
+
+    <!-- PÁGINA 2: Formulário -->
+    <section id="pageForm" class="card hidden">
+      <h2 id="formTitle">Formulário de Cadastro</h2>
+      <p class="subtitle" id="formSubtitle">Preencha os campos abaixo.</p>
+
+      <div id="modeBanner" class="mode-banner new">
+        <span id="modeBadge" class="badge badge-new">NOVO CADASTRO</span>
+      </div>
+
+      <form id="cadForm" novalidate>
+        <input type="hidden" id="fldRowIndex" value="" />
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="fldNome">Nome completo <span class="req">*</span></label>
+            <input type="text" id="fldNome" required />
+            <div class="error-msg" id="errNome"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="fldMatricula">Matrícula <span class="req">*</span></label>
+            <input type="text" id="fldMatricula" required />
+            <div class="error-msg" id="errMatricula"></div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="fldEmail">E-mail pessoal <span class="req">*</span></label>
+            <input type="email" id="fldEmail" required />
+            <div class="error-msg" id="errEmail"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="fldTelefone">Telefone <span class="req">*</span></label>
+            <input type="tel" id="fldTelefone" placeholder="(00) 00000-0000" required />
+            <div class="error-msg" id="errTelefone"></div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="fldEscola">Escola <span class="req">*</span></label>
+            <select id="fldEscola" required>
+              <option value="">Selecione...</option>
+            </select>
+            <div class="error-msg" id="errEscola"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="fldFuncao">Função <span class="req">*</span></label>
+            <select id="fldFuncao" required>
+              <option value="">Selecione...</option>
+              <option value="Professor">Professor</option>
+              <option value="Coordenador">Coordenador</option>
+              <option value="Diretor">Diretor</option>
+              <option value="Secretario">Secretário</option>
+              <option value="Outro">Outro</option>
+            </select>
+            <div class="error-msg" id="errFuncao"></div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="fldObs">Observações</label>
+          <textarea id="fldObs" rows="3" placeholder="Opcional"></textarea>
+        </div>
+
+        <div class="actions">
+          <button type="button" id="btnBack" class="btn btn-secondary">Voltar</button>
+          <button type="submit" id="btnSave" class="btn btn-success">Salvar</button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <!-- DEBUG PANEL -->
+  <div id="debugPanel" class="collapsed">
+    <div class="dbg-header" id="dbgToggle">
+      <span>🛠 DEBUG</span>
+      <span id="dbgCount">0</span>
+    </div>
+    <div class="dbg-body" id="dbgBody"></div>
   </div>
 
-  <!-- PÁGINA 1 - VERIFICAÇÃO -->
-  <div id="pageVerificacao" class="page">
-    <div class="user-info">
-      Logado: <span id="userEmail"></span> | <span class="logout-link" onclick="logout()">Sair</span>
-    </div>
-    <h2>Página 1 - Verificação de Duplicatas</h2>
-    <div class="error-box" id="errorMsg"></div>
+  <script type="module">
+    import { CONFIG } from './CONFIG.js';
+    import * as Auth from './auth.js';
+    import * as Sheets from './sheetsService.js';
 
-    <label>Verificar por:</label>
-    <div class="radio-group">
-      <label><input type="radio" name="tipoVerificacao" value="email" checked onchange="toggleVerificacao()"> E-mail</label>
-      <label><input type="radio" name="tipoVerificacao" value="matricula" onchange="toggleVerificacao()"> Matrícula</label>
-    </div>
+    /* ============================================================
+       DEBUG LOGGER
+    ============================================================ */
+    const dbgBody = document.getElementById('dbgBody');
+    const dbgCount = document.getElementById('dbgCount');
+    let dbgN = 0;
 
-    <div id="campoEmail">
-      <label for="verifEmail">E-mail</label>
-      <input type="text" id="verifEmail" placeholder="seuemail@scseduca.com.br">
-    </div>
-    <div id="campoMatricula" style="display:none;">
-      <label for="verifMatricula">Matrícula</label>
-      <input type="text" id="verifMatricula" placeholder="12345 ou 12345-6" maxlength="10">
-    </div>
+    function log(msg, type = 'info') {
+      dbgN++;
+      const line = document.createElement('div');
+      line.className = 'log-line log-' + type;
+      const ts = new Date().toLocaleTimeString();
+      line.textContent = `[${ts}] ${msg}`;
+      dbgBody.appendChild(line);
+      dbgBody.scrollTop = dbgBody.scrollHeight;
+      dbgCount.textContent = dbgN;
+      /* eslint-disable no-console */
+      const fn = type === 'err' ? console.error : type === 'warn' ? console.warn : console.log;
+      fn(`[DEBUG] ${msg}`);
+    }
 
-    <button onclick="verificarRegistro()">Verificar</button>
-  </div>
+    document.getElementById('dbgToggle').addEventListener('click', () => {
+      document.getElementById('debugPanel').classList.toggle('collapsed');
+    });
 
-  <!-- PÁGINA 2 - FORMULÁRIO -->
-  <div id="pageFormulario" class="page">
-    <div class="user-info">
-      Logado: <span id="userEmail2"></span> | <span class="logout-link" onclick="logout()">Sair</span>
-    </div>
-    <h2 id="formTitulo">Novo Cadastro</h2>
-    <div class="found-box" id="foundInfo" style="display:none;"></div>
+    /* ============================================================
+       ELEMENTS
+    ============================================================ */
+    const pageVerify = document.getElementById('pageVerify');
+    const pageForm = document.getElementById('pageForm');
+    const btnSignIn = document.getElementById('btnSignIn');
+    const btnSignOut = document.getElementById('btnSignOut');
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    const btnVerify = document.getElementById('btnVerify');
+    const verifyInput = document.getElementById('verifyInput');
+    const verifyError = document.getElementById('verifyError');
+    const btnBack = document.getElementById('btnBack');
+    const cadForm = document.getElementById('cadForm');
+    const btnSave = document.getElementById('btnSave');
+    const modeBanner = document.getElementById('modeBanner');
+    const modeBadge = document.getElementById('modeBadge');
 
-    <label for="fNome">Nome</label>
-    <input type="text" id="fNome">
+    let currentMode = 'new'; // 'new' | 'update'
+    let currentRecord = null;
+    let escolasCache = [];
 
-    <div class="row">
-      <div>
-        <label for="fEmail">E-mail</label>
-        <input type="text" id="fEmail">
-      </div>
-      <div>
-        <label for="fMatricula">Matrícula</label>
-        <input type="text" id="fMatricula">
-      </div>
-    </div>
+    /* ============================================================
+       CONFIG VALIDATION
+    ============================================================ */
+    log('Inicializando aplicação...', 'info');
+    log(`Client ID: ${CONFIG?.clientId || 'NÃO DEFINIDO'}`, 'info');
+    log(`Planilha REGISTROS: ${CONFIG?.spreadsheets?.REGISTROS || 'NÃO DEFINIDA'}`, 'info');
+    log(`Planilha ESCOLAS: ${CONFIG?.spreadsheets?.ESCOLAS || 'NÃO DEFINIDA'}`, 'info');
 
-    <div class="row">
-      <div>
-        <label for="fTelefone">Telefone</label>
-        <input type="text" id="fTelefone">
-      </div>
-      <div>
-        <label for="fEscola">Escola</label>
-        <select id="fEscola"><option value="">Carregando...</option></select>
-      </div>
-    </div>
+    if (!CONFIG?.clientId || !CONFIG?.spreadsheets?.REGISTROS || !CONFIG?.spreadsheets?.ESCOLAS) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Configuração inválida',
+        text: 'Verifique CONFIG.js (clientId, spreadsheets.REGISTROS, spreadsheets.ESCOLAS).'
+      });
+      log('CONFIG incompleto!', 'err');
+    }
 
-    <label for="fPeriodo">Período de Trabalho</label>
-    <select id="fPeriodo">
-      <option value="">Selecione...</option>
-      <option value="Manhã">Manhã</option>
-      <option value="Tarde">Tarde</option>
-      <option value="Noite">Noite</option>
-      <option value="Manhã/Tarde">Manhã/Tarde</option>
-      <option value="Tarde/Noite">Tarde/Noite</option>
-      <option value="Integral">Integral</option>
-    </select>
+    /* ============================================================
+       AUTH
+    ============================================================ */
+    function updateAuthUI(signedIn) {
+      if (signedIn) {
+        statusDot.classList.add('ok');
+        statusText.textContent = 'Autenticado';
+        btnSignIn.classList.add('hidden');
+        btnSignOut.classList.remove('hidden');
+        log('Usuário autenticado.', 'ok');
+      } else {
+        statusDot.classList.remove('ok');
+        statusText.textContent = 'Não autenticado';
+        btnSignIn.classList.remove('hidden');
+        btnSignOut.classList.add('hidden');
+        log('Usuário não autenticado.', 'warn');
+      }
+    }
 
-    <div class="row">
-      <div>
-        <label for="fEntrada">Horário de Entrada</label>
-        <input type="time" id="fEntrada">
-      </div>
-      <div>
-        <label for="fSaidaIntervalo">Saída (Intervalo)</label>
-        <input type="time" id="fSaidaIntervalo">
-      </div>
-    </div>
-    <div class="row">
-      <div>
-        <label for="fVoltaIntervalo">Entrada (Volta do Intervalo)</label>
-        <input type="time" id="fVoltaIntervalo">
-      </div>
-      <div>
-        <label for="fSaida">Saída</label>
-        <input type="time" id="fSaida">
-      </div>
-    </div>
+    btnSignIn.addEventListener('click', async () => {
+      try {
+        log('Iniciando autenticação...', 'info');
+        await Auth.signIn();
+        updateAuthUI(Auth.isSignedIn());
+        await loadEscolas();
+      } catch (e) {
+        log('Erro ao autenticar: ' + e.message, 'err');
+        Swal.fire({ icon: 'error', title: 'Falha na autenticação', text: e.message });
+      }
+    });
 
-    <div class="btn-group">
-      <button id="btnSalvar" onclick="salvarRegistro()">Criar Cadastro</button>
-      <button class="secondary" id="btnVoltar" onclick="voltarVerificacao()" style="display:none;">Voltar</button>
-    </div>
-  </div>
-</div>
+    btnSignOut.addEventListener('click', async () => {
+      try {
+        await Auth.signOut();
+        updateAuthUI(false);
+      } catch (e) {
+        log('Erro ao sair: ' + e.message, 'err');
+      }
+    });
 
-<script>
-const CLIENT_ID = '367248828417-n4l55p0dloon7uf71erubrmfouegq16u.apps.googleusercontent.com';
-const REGISTROS_ID = '1B6xRr_WDCTkWEfsaeiEPdgDILuDwaQd1oZQEsQdF6GA';
-const ESCOLAS_ID = '1VBbvfrZPQZ96e7hzpUnFG_GPfjA3I-mLKI-RgoP8OlA';
-const SCOPE = 'https://www.googleapis.com/auth/spreadsheets';
+    /* ============================================================
+       VALIDATIONS
+    ============================================================ */
+    const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const MATRICULA_REGEX = /^[A-Za-z0-9]{3,20}$/;
+    const PHONE_REGEX = /^\(?\d{2}\)?\s?9?\d{4,5}-?\d{4}$/;
 
-let accessToken = null;
-let registros = [];
-let escolas = [];
-let modoAtual = 'NOVO'; // NOVO ou ATUALIZACAO
-let registroEncontrado = null;
-let linhaEncontrada = null;
+    // Domínios de e-mail de escola bloqueados
+    const BLOCKED_DOMAINS = [
+      'escola.gov.br',
+      'educacao.gov.br',
+      'seed.pr.gov.br',
+      'escolas.pr.gov.br',
+      'pm.pr.gov.br',
+      '.gov.br'
+    ];
 
-// ===== COLUNAS =====
-const COL = {
-  NOME: 'NOME',
-  EMAIL: 'E-MAIL',
-  MATRICULA: 'MATRÍCULA',
-  TELEFONE: 'TELEFONE',
-  ESCOLA: 'ESCOLA',
-  PERIODO: 'PERÍODO DE TRABALHO',
-  ENTRADA: 'HORÁRIO DE ENTRADA',
-  SAIDA_INTERVALO: 'SAÍDA (INTERVALO)',
-  VOLTA_INTERVALO: 'ENTRADA (VOLTA DO INTERVALO)',
-  SAIDA: 'SAÍDA'
-};
+    function isSchoolEmail(email) {
+      if (!email) return false;
+      const domain = email.split('@')[1]?.toLowerCase() || '';
+      return BLOCKED_DOMAINS.some(d => domain.endsWith(d));
+    }
 
-// ===== LOGIN GOOGLE =====
-function initGoogle() {
-  if (!window.google || !google.accounts) {
-    setTimeout(initGoogle, 200);
-    return;
-  }
-  google.accounts.id.initialize({
-    client_id: CLIENT_ID,
-    callback: onCredentialResponse
-  });
-  google.accounts.id.renderButton(
-    document.getElementById('googleBtn'),
-    { theme: 'outline', size: 'large', text: 'continue_with', shape: 'pill' }
-  );
-}
+    function showError(fieldId, msgId, message) {
+      const field = document.getElementById(fieldId);
+      const errEl = document.getElementById(msgId);
+      if (field) field.classList.add('invalid');
+      if (errEl) {
+        errEl.textContent = message;
+        errEl.classList.add('show');
+      }
+    }
 
-function onCredentialResponse(response) {
-  console.log('[LOGIN] Credential recebida');
-  // Usar token client para obter access token ao escopo sheets
-  requestAccessToken();
-}
+    function clearError(fieldId, msgId) {
+      const field = document.getElementById(fieldId);
+      const errEl = document.getElementById(msgId);
+      if (field) field.classList.remove('invalid');
+      if (errEl) {
+        errEl.textContent = '';
+        errEl.classList.remove('show');
+      }
+    }
 
-function requestAccessToken() {
-  if (!window.google || !google.accounts || !google.accounts.oauth2) {
-    setTimeout(requestAccessToken, 200);
-    return;
-  }
-  const tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: CLIENT_ID,
-    scope: SCOPE,
-    callback: (resp) => {
-      if (resp.error) {
-        console.error('[LOGIN] Erro token:', resp);
-        Swal.fire('Erro', 'Falha ao obter acesso.', 'error');
+    function clearAllErrors() {
+      ['errNome','errMatricula','errEmail','errTelefone','errEscola','errFuncao'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.textContent = ''; el.classList.remove('show'); }
+      });
+      ['fldNome','fldMatricula','fldEmail','fldTelefone','fldEscola','fldFuncao'].forEach(id => {
+        document.getElementById(id)?.classList.remove('invalid');
+      });
+    }
+
+    function validateForm() {
+      clearAllErrors();
+      let valid = true;
+
+      const nome = document.getElementById('fldNome').value.trim();
+      const matricula = document.getElementById('fldMatricula').value.trim();
+      const email = document.getElementById('fldEmail').value.trim();
+      const telefone = document.getElementById('fldTelefone').value.trim();
+      const escola = document.getElementById('fldEscola').value;
+      const funcao = document.getElementById('fldFuncao').value;
+
+      if (nome.length < 3) {
+        showError('fldNome', 'errNome', 'Informe o nome completo (mínimo 3 caracteres).');
+        valid = false;
+      }
+
+      if (!MATRICULA_REGEX.test(matricula)) {
+        showError('fldMatricula', 'errMatricula', 'Matrícula inválida (3 a 20 caracteres alfanuméricos).');
+        valid = false;
+      }
+
+      if (!EMAIL_REGEX.test(email)) {
+        showError('fldEmail', 'errEmail', 'E-mail inválido.');
+        valid = false;
+      } else if (isSchoolEmail(email)) {
+        showError('fldEmail', 'errEmail', 'E-mails institucionais de escola não são permitidos. Use e-mail pessoal.');
+        valid = false;
+      }
+
+      if (!PHONE_REGEX.test(telefone)) {
+        showError('fldTelefone', 'errTelefone', 'Telefone inválido. Ex: (41) 99999-9999');
+        valid = false;
+      }
+
+      if (!escola) {
+        showError('fldEscola', 'errEscola', 'Selecione a escola.');
+        valid = false;
+      }
+
+      if (!funcao) {
+        showError('fldFuncao', 'errFuncao', 'Selecione a função.');
+        valid = false;
+      }
+
+      return valid;
+    }
+
+    /* ============================================================
+       ESCOLAS (dropdown)
+    ============================================================ */
+    async function loadEscolas() {
+      try {
+        log('Carregando lista de escolas...', 'info');
+        const rows = await Sheets.getRows(CONFIG.spreadsheets.ESCOLAS, 'ESCOLAS');
+        escolasCache = rows || [];
+        const select = document.getElementById('fldEscola');
+        select.innerHTML = '<option value="">Selecione...</option>';
+        escolasCache.forEach(r => {
+          const nome = r.nome || r.NOME || r[0] || '';
+          if (nome) {
+            const opt = document.createElement('option');
+            opt.value = nome;
+            opt.textContent = nome;
+            select.appendChild(opt);
+          }
+        });
+        log(`${escolasCache.length} escolas carregadas.`, 'ok');
+      } catch (e) {
+        log('Erro ao carregar escolas: ' + e.message, 'err');
+        Swal.fire({ icon: 'warning', title: 'Aviso', text: 'Não foi possível carregar a lista de escolas.' });
+      }
+    }
+
+    /* ============================================================
+       NAVIGATION
+    ============================================================ */
+    function showPage(page) {
+      if (page === 'verify') {
+        pageVerify.classList.remove('hidden');
+        pageForm.classList.add('hidden');
+      } else {
+        pageVerify.classList.add('hidden');
+        pageForm.classList.remove('hidden');
+      }
+    }
+
+    btnBack.addEventListener('click', () => {
+      showPage('verify');
+      cadForm.reset();
+      clearAllErrors();
+      currentRecord = null;
+    });
+
+    /* ============================================================
+       VERIFICAÇÃO (Página 1)
+    ============================================================ */
+    btnVerify.addEventListener('click', async () => {
+      verifyError.classList.remove('show');
+      const value = verifyInput.value.trim();
+
+      if (!value) {
+        verifyError.textContent = 'Informe e-mail ou matrícula.';
+        verifyError.classList.add('show');
         return;
       }
-      accessToken = resp.access_token;
-      console.log('[LOGIN] Access token obtido');
+
+      const isEmailInput = value.includes('@');
+      if (isEmailInput) {
+        if (!EMAIL_REGEX.test(value)) {
+          verifyError.textContent = 'E-mail inválido.';
+          verifyError.classList.add('show');
+          return;
+        }
+        if (isSchoolEmail(value)) {
+          verifyError.textContent = 'E-mails de escola não são permitidos. Use e-mail pessoal.';
+          verifyError.classList.add('show');
+          Swal.fire({
+            icon: 'warning',
+            title: 'E-mail bloqueado',
+            text: 'Utilize seu e-mail pessoal. E-mails institucionais de escola não são aceitos.'
+          });
+          return;
+        }
+      } else {
+        if (!MATRICULA_REGEX.test(value)) {
+          verifyError.textContent = 'Matrícula inválida.';
+          verifyError.classList.add('show');
+          return;
+        }
+      }
+
+      if (!Auth.isSignedIn()) {
+        Swal.fire({
+          icon: 'info',
+          title: 'Autenticação necessária',
+          text: 'Faça login com o Google para continuar.'
+        });
+        return;
+      }
+
       try {
-        const payload = JSON.parse(atob(resp.access_token.split('.')[1]));
-        document.getElementById('userEmail').textContent = payload.email || '';
-        document.getElementById('userEmail2').textContent = payload.email || '';
-      } catch(e) { console.warn('[LOGIN] Não foi possível extrair email do token'); }
-      onLoginSuccess();
-    }
-  });
-  tokenClient.requestAccessToken({ prompt: 'consent' });
-}
+        btnVerify.disabled = true;
+        btnVerify.innerHTML = '<span class="loader"></span> Verificando...';
+        log(`Verificando: ${value}`, 'info');
 
-async function onLoginSuccess() {
-  showPage('pageVerificacao');
-  await carregarEscolas();
-  await carregarRegistros();
-}
+        const rows = await Sheets.getRows(CONFIG.spreadsheets.REGISTROS, 'REGISTROS');
+        const found = (rows || []).find(r => {
+          const email = (r.email || r.EMAIL || r[2] || '').toString().toLowerCase();
+          const mat = (r.matricula || r.MATRICULA || r[1] || '').toString().toLowerCase();
+          return email === value.toLowerCase() || mat === value.toLowerCase();
+        });
 
-function logout() {
-  if (accessToken && google.accounts.oauth2) {
-    google.accounts.oauth2.revoke(accessToken, () => {
-      console.log('[LOGOUT] Token revogado');
+        if (found) {
+          log('Registro encontrado. Modo: ATUALIZAÇÃO', 'ok');
+          currentMode = 'update';
+          currentRecord = found;
+          await openForm('update', found);
+        } else {
+          log('Registro não encontrado. Modo: NOVO', 'warn');
+          currentMode = 'new';
+          currentRecord = null;
+          await openForm('new', null, value);
+        }
+      } catch (e) {
+        log('Erro na verificação: ' + e.message, 'err');
+        Swal.fire({ icon: 'error', title: 'Erro', text: 'Falha ao consultar registros: ' + e.message });
+      } finally {
+        btnVerify.disabled = false;
+        btnVerify.textContent = 'Verificar';
+      }
     });
-  }
-  accessToken = null;
-  registros = [];
-  showPage('pageLogin');
-  initGoogle();
-}
 
-// ===== CARREGAR DADOS =====
-async function carregarRegistros() {
-  console.log('[DADOS] Carregando registros...');
-  try {
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${REGISTROS_ID}/values/A1:J10000?access_token=${accessToken}`;
-    const resp = await fetch(url);
-    const data = await resp.json();
-    if (!data.values || data.values.length < 1) {
-      console.warn('[DADOS] Planilha vazia');
-      registros = [];
-      return;
+    /* ============================================================
+       FORM (Página 2)
+    ============================================================ */
+    async function openForm(mode, record, prefillValue = '') {
+      clearAllErrors();
+      cadForm.reset();
+
+      if (mode === 'update') {
+        document.getElementById('formTitle').textContent = 'Atualizar Cadastro';
+        document.getElementById('formSubtitle').textContent = 'Atualize os dados abaixo.';
+        modeBanner.className = 'mode-banner update';
+        modeBadge.className = 'badge badge-update';
+        modeBadge.textContent = 'ATUALIZAÇÃO';
+
+        document.getElementById('fldRowIndex').value = record.__row || record.rowIndex || '';
+        document.getElementById('fldNome').value = record.nome || record.NOME || record[0] || '';
+        document.getElementById('fldMatricula').value = record.matricula || record.MATRICULA || record[1] || '';
+        document.getElementById('fldEmail').value = record.email || record.EMAIL || record[2] || '';
+        document.getElementById('fldTelefone').value = record.telefone || record.TELEFONE || record[3] || '';
+        document.getElementById('fldEscola').value = record.escola || record.ESCOLA || record[4] || '';
+        document.getElementById('fldFuncao').value = record.funcao || record.FUNCAO || record[5] || '';
+        document.getElementById('fldObs').value = record.obs || record.OBS || record[6] || '';
+      } else {
+        document.getElementById('formTitle').textContent = 'Novo Cadastro';
+        document.getElementById('formSubtitle').textContent = 'Preencha os campos abaixo.';
+        modeBanner.className = 'mode-banner new';
+        modeBadge.className = 'badge badge-new';
+        modeBadge.textContent = 'NOVO CADASTRO';
+
+        document.getElementById('fldRowIndex').value = '';
+        if (prefillValue.includes('@')) {
+          document.getElementById('fldEmail').value = prefillValue;
+        } else if (prefillValue) {
+          document.getElementById('fldMatricula').value = prefillValue;
+        }
+      }
+
+      showPage('form');
     }
-    const headers = data.values[0].map(h => (h || '').trim().toUpperCase());
-    const rows = data.values.slice(1);
-    registros = rows.map((r, idx) => {
-      const obj = { _linha: idx + 2 }; // linha real na planilha (header=1)
-      headers.forEach((h, i) => { obj[h] = (r[i] || '').trim(); });
-      return obj;
-    });
-    console.log(`[DADOS] ${registros.length} registros carregados`);
-    console.log('[DADOS] Headers:', headers);
-  } catch (e) {
-    console.error('[DADOS] Erro ao carregar registros:', e);
-    Swal.fire('Erro', 'Não foi possível carregar os registros.', 'error');
-  }
-}
 
-async function carregarEscolas() {
-  console.log('[DADOS] Carregando escolas...');
-  try {
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${ESCOLAS_ID}/values/A1:A500?access_token=${accessToken}`;
-    const resp = await fetch(url);
-    const data = await resp.json();
-    const sel = document.getElementById('fEscola');
-    sel.innerHTML = '<option value="">Selecione...</option>';
-    if (data.values && data.values.length > 0) {
-      // Assume primeira coluna com nome da escola (pode ter header)
-      const vals = data.values.map(r => (r[0] || '').trim()).filter(v => v);
-      // Se primeiro for header "ESCOLA" ou similar, pular
-      if (vals[0] && vals[0].toUpperCase().includes('ESCOLA')) vals.shift();
-      escolas = vals;
-      vals.forEach(v => {
-        const opt = document.createElement('option');
-        opt.value = v; opt.textContent = v;
-        sel.appendChild(opt);
+    /* ============================================================
+       SALVAR
+    ============================================================ */
+    cadForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!validateForm()) {
+        Swal.fire({ icon: 'error', title: 'Formulário inválido', text: 'Corrija os campos destacados.' });
+        return;
+      }
+
+      if (!Auth.isSignedIn()) {
+        Swal.fire({ icon: 'info', title: 'Autenticação necessária', text: 'Faça login para salvar.' });
+        return;
+      }
+
+      const payload = {
+        nome: document.getElementById('fldNome').value.trim(),
+        matricula: document.getElementById('fldMatricula').value.trim(),
+        email: document.getElementById('fldEmail').value.trim(),
+        telefone: document.getElementById('fldTelefone').value.trim(),
+        escola: document.getElementById('fldEscola').value,
+        funcao: document.getElementById('fldFuncao').value,
+        obs: document.getElementById('fldObs').value.trim(),
+        atualizadoEm: new Date().toISOString()
+      };
+
+      const confirmText = currentMode === 'update'
+        ? 'Deseja realmente atualizar este cadastro?'
+        : 'Deseja realmente salvar este novo cadastro?';
+
+      const confirmRes = await Swal.fire({
+        icon: 'question',
+        title: 'Confirmação',
+        text: confirmText,
+        showCancelButton: true,
+        confirmButtonText: 'Sim, salvar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#16a34a'
       });
-      console.log(`[DADOS] ${vals.length} escolas carregadas`);
-    }
-  } catch (e) {
-    console.error('[DADOS] Erro ao carregar escolas:', e);
-    document.getElementById('fEscola').innerHTML = '<option value="">Erro ao carregar</option>';
-  }
-}
 
-// ===== VERIFICAÇÃO =====
-function toggleVerificacao() {
-  const tipo = document.querySelector('input[name="tipoVerificacao"]:checked').value;
-  document.getElementById('campoEmail').style.display = tipo === 'email' ? 'block' : 'none';
-  document.getElementById('campoMatricula').style.display = tipo === 'matricula' ? 'block' : 'none';
-  document.getElementById('errorMsg').style.display = 'none';
-}
+      if (!confirmRes.isConfirmed) return;
 
-function showError(msg) {
-  const box = document.getElementById('errorMsg');
-  box.textContent = msg;
-  box.style.display = 'block';
-  console.warn('[VALIDAÇÃO] ' + msg);
-}
+      try {
+        btnSave.disabled = true;
+        btnSave.innerHTML = '<span class="loader"></span> Salvando...';
+        log(`Salvando em modo ${currentMode}...`, 'info');
 
-function isEmailEscola(email) {
-  const local = email.split('@')[0].toLowerCase();
-  const prefixos = ['eme.', 'emef.', 'emei.', 'emi.', 'eme', 'emef', 'emei', 'emi'];
-  // Verifica prefixos com ou sem ponto
-  for (const p of prefixos) {
-    if (local.startsWith(p)) return true;
-  }
-  // Verifica padrão eme., emef., emei., emi. com ponto
-  if (/^(eme|emef|emei|emi)\./i.test(local)) return true;
-  if (/^(eme|emef|emei|emi)/i.test(local) && local.length > 3 && /\d/.test(local)) return true;
-  return false;
-}
+        let result;
+        if (currentMode === 'update') {
+          const rowIndex = document.getElementById('fldRowIndex').value;
+          result = await Sheets.updateRow(CONFIG.spreadsheets.REGISTROS, 'REGISTROS', rowIndex, payload);
+          log('Registro atualizado com sucesso.', 'ok');
+        } else {
+          result = await Sheets.appendRow(CONFIG.spreadsheets.REGISTROS, 'REGISTROS', payload);
+          log('Novo registro criado com sucesso.', 'ok');
+        }
 
-function normalizarMatricula5(mat) {
-  // Remove hífen e não-dígitos, pega 5 primeiros
-  const digits = String(mat || '').replace(/\D/g, '');
-  return digits.substring(0, 5);
-}
+        await Swal.fire({
+          icon: 'success',
+          title: 'Sucesso!',
+          text: currentMode === 'update' ? 'Cadastro atualizado!' : 'Cadastro realizado!',
+          timer: 2000,
+          showConfirmButton: false
+        });
 
-function verificarRegistro() {
-  console.log('[VERIFICAÇÃO] Iniciando...');
-  document.getElementById('errorMsg').style.display = 'none';
-  const tipo = document.querySelector('input[name="tipoVerificacao"]:checked').value;
-
-  if (registros.length === 0) {
-    console.log('[VERIFICAÇÃO] Registros não carregados, tentando recarregar...');
-    carregarRegistros().then(() => verificarRegistro());
-    return;
-  }
-
-  if (tipo === 'email') {
-    const email = document.getElementById('verifEmail').value.trim().toLowerCase();
-    console.log('[VERIFICAÇÃO] Verificando e-mail:', email);
-
-    if (!email) { showError('Informe um e-mail.'); return; }
-    if (!email.endsWith('@scseduca.com.br')) {
-      showError('O e-mail deve ser do domínio @scseduca.com.br');
-      return;
-    }
-    if (isEmailEscola(email)) {
-      showError('E-mails de escola (eme.*, emef.*, emei.*, emi.*) não são permitidos.');
-      Swal.fire('Bloqueado', 'E-mails de escola não são permitidos para cadastro individual.', 'error');
-      return;
-    }
-
-    const encontrado = registros.find(r => {
-      const e = (r[COL.EMAIL] || '').trim().toLowerCase();
-      return e === email;
+        cadForm.reset();
+        currentRecord = null;
+        showPage('verify');
+        verifyInput.value = '';
+      } catch (err) {
+        log('Erro ao salvar: ' + err.message, 'err');
+        Swal.fire({ icon: 'error', title: 'Erro ao salvar', text: err.message });
+      } finally {
+        btnSave.disabled = false;
+        btnSave.textContent = 'Salvar';
+      }
     });
 
-    if (encontrado) {
-      console.log('[VERIFICAÇÃO] Registro encontrado por e-mail:', encontrado);
-      registroEncontrado = encontrado;
-      linhaEncontrada = encontrado._linha;
-      mostrarResultadoEncontrado(encontrado);
-      abrirFormularioAtualizacao(encontrado);
-    } else {
-      console.log('[VERIFICAÇÃO] Nenhum registro encontrado por e-mail. Modo NOVO.');
-      registroEncontrado = null;
-      linhaEncontrada = null;
-      abrirFormularioNovo({ email: email });
-    }
-  } else {
-    const matricula = document.getElementById('verifMatricula').value.trim();
-    console.log('[VERIFICAÇÃO] Verificando matrícula:', matricula);
+    /* ============================================================
+       INIT
+    ============================================================ */
+    (async function init() {
+      try {
+        log('Inicializando Auth...', 'info');
+        await Auth.initAuth(CONFIG);
+        const signed = Auth.isSignedIn();
+        updateAuthUI(signed);
+        if (signed) {
+          await loadEscolas();
+        }
+      } catch (e) {
+        log('Falha na inicialização: ' + e.message, 'err');
+      }
 
-    if (!matricula) { showError('Informe uma matrícula.'); return; }
-    const mat5 = normalizarMatricula5(matricula);
-    console.log('[VERIFICAÇÃO] Matrícula normalizada (5 dígitos):', mat5);
-    if (mat5.length < 5) {
-      showError('Matrícula deve conter ao menos 5 dígitos.');
-      return;
-    }
+      // Limpar erros ao digitar
+      ['fldNome','fldMatricula','fldEmail','fldTelefone','fldEscola','fldFuncao'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.addEventListener('input', () => {
+            const errId = 'err' + id.replace('fld','');
+            clearError(id, errId);
+          });
+        }
+      });
 
-    const encontrado = registros.find(r => {
-      const m = normalizarMatricula5(r[COL.MATRICULA] || '');
-      return m === mat5;
-    });
+      verifyInput.addEventListener('input', () => {
+        verifyError.classList.remove('show');
+        verifyError.textContent = '';
+      });
 
-    if (encontrado) {
-      console.log('[VERIFICAÇÃO] Registro encontrado por matrícula:', encontrado);
-      registroEncontrado = encontrado;
-      linhaEncontrada = encontrado._linha;
-      mostrarResultadoEncontrado(encontrado);
-      abrirFormularioAtualizacao(encontrado);
-    } else {
-      console.log('[VERIFICAÇÃO] Nenhum registro encontrado por matrícula. Modo NOVO.');
-      registroEncontrado = null;
-      linhaEncontrada = null;
-      abrirFormularioNovo({ matricula: matricula });
-    }
-  }
-}
-
-function mostrarResultadoEncontrado(r) {
-  Swal.fire({
-    title: 'Registro Encontrado',
-    html: `<div style="text-align:left;font-size:14px;">
-      <b>Nome:</b> ${r[COL.NOME] || '-'}<br>
-      <b>E-mail:</b> ${r[COL.EMAIL] || '-'}<br>
-      <b>Matrícula:</b> ${r[COL.MATRICULA] || '-'}<br>
-      <b>Escola:</b> ${r[COL.ESCOLA] || '-'}<br>
-      <b>Período:</b> ${r[COL.PERIODO] || '-'}
-    </div>`,
-    icon: 'info',
-    confirmButtonText: 'Ir para Atualização'
-  });
-}
-
-// ===== FORMULÁRIO =====
-function abrirFormularioNovo(dados) {
-  modoAtual = 'NOVO';
-  document.getElementById('formTitulo').textContent = 'Novo Cadastro';
-  document.getElementById('foundInfo').style.display = 'none';
-  document.getElementById('btnSalvar').textContent = 'Criar Cadastro';
-  document.getElementById('btnVoltar').style.display = 'none';
-
-  limparCampos();
-  if (dados.email) document.getElementById('fEmail').value = dados.email;
-  if (dados.matricula) document.getElementById('fMatricula').value = dados.matricula;
-
-  document.getElementById('fEmail').readOnly = false;
-  document.getElementById('fMatricula').readOnly = false;
-
-  showPage('pageFormulario');
-  console.log('[FORM] Modo NOVO aberto');
-}
-
-function abrirFormularioAtualizacao(r) {
-  modoAtual = 'ATUALIZACAO';
-  document.getElementById('formTitulo').textContent = 'Atualizar Cadastro Existente';
-  document.getElementById('btnSalvar').textContent = 'Atualizar Cadastro';
-  document.getElementById('btnVoltar').style.display = 'inline-block';
-
-  const info = document.getElementById('foundInfo');
-  info.innerHTML = `<b>Registro existente encontrado:</b><br>
-    Nome: ${r[COL.NOME] || '-'} | E-mail: ${r[COL.EMAIL] || '-'} | Matrícula: ${r[COL.MATRICULA] || '-'}<br>
-    <i>Os campos E-mail e Matrícula não podem ser alterados.</i>`;
-  info.style.display = 'block';
-
-  document.getElementById('fNome').value = r[COL.NOME] || '';
-  document.getElementById('fEmail').value = r[COL.EMAIL] || '';
-  document.getElementById('fMatricula').value = r[COL.MATRICULA] || '';
-  document.getElementById('fTelefone').value = r[COL.TELEFONE] || '';
-  document.getElementById('fEscola').value = r[COL.ESCOLA] || '';
-  document.getElementById('fPeriodo').value = r[COL.PERIODO] || '';
-  document.getElementById('fEntrada').value = r[COL.ENTRADA] || '';
-  document.getElementById('fSaidaIntervalo').value = r[COL.SAIDA_INTERVALO] || '';
-  document.getElementById('fVoltaIntervalo').value = r[COL.VOLTA_INTERVALO] || '';
-  document.getElementById('fSaida').value = r[COL.SAIDA] || '';
-
-  document.getElementById('fEmail').readOnly = true;
-  document.getElementById('fMatricula').readOnly = true;
-
-  showPage('pageFormulario');
-  console.log('[FORM] Modo ATUALIZAÇÃO aberto - linha', linhaEncontrada);
-}
-
-function limparCampos() {
-  ['fNome','fEmail','fMatricula','fTelefone','fEntrada','fSaidaIntervalo','fVoltaIntervalo','fSaida'].forEach(id => {
-    document.getElementById(id).value = '';
-  });
-  document.getElementById('fEscola').value = '';
-  document.getElementById('fPeriodo').value = '';
-}
-
-function voltarVerificacao() {
-  showPage('pageVerificacao');
-  document.getElementById('verifEmail').value = '';
-  document.getElementById('verifMatricula').value = '';
-  console.log('[FORM] Voltou para verificação');
-}
-
-// ===== SALVAR =====
-async function salvarRegistro() {
-  console.log('[SALVAR] Iniciando - modo:', modoAtual);
-  const dados = coletarDadosForm();
-  if (!validarDadosForm(dados)) return;
-
-  if (modoAtual === 'NOVO') {
-    // Verificação rigorosa novamente antes de salvar
-    const dup = verificarDuplicataRigorosa(dados);
-    if (dup) {
-      console.warn('[SALVAR] Duplicata detectada no salvamento:', dup);
-      Swal.fire('Duplicata Detectada', 'Já existe um registro com este e-mail ou matrícula. Abrindo modo atualização.', 'warning');
-      registroEncontrado = dup;
-      linhaEncontrada = dup._linha;
-      abrirFormularioAtualizacao(dup);
-      return;
-    }
-
-    const confirm = await Swal.fire({
-      title: 'Confirmar Cadastro',
-      text: 'Deseja criar este novo cadastro?',
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: 'Sim, criar',
-      cancelButtonText: 'Cancelar'
-    });
-    if (!confirm.isConfirmed) return;
-
-    await inserirRegistro(dados);
-  } else {
-    const confirm = await Swal.fire({
-      title: 'Confirmar Atualização',
-      text: 'Deseja atualizar este cadastro existente?',
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: 'Sim, atualizar',
-      cancelButtonText: 'Cancelar'
-    });
-    if (!confirm.isConfirmed) return;
-
-    await atualizarRegistro(dados);
-  }
-}
-
-function coletarDadosForm() {
-  return {
-    [COL.NOME]: document.getElementById('fNome').value.trim(),
-    [COL.EMAIL]: document.getElementById('fEmail').value.trim(),
-    [COL.MATRICULA]: document.getElementById('fMatricula').value.trim(),
-    [COL.TELEFONE]: document.getElementById('fTelefone').value.trim(),
-    [COL.ESCOLA]: document.getElementById('fEscola').value.trim(),
-    [COL.PERIODO]: document.getElementById('fPeriodo').value.trim(),
-    [COL.ENTRADA]: document.getElementById('fEntrada').value.trim(),
-    [COL.SAIDA_INTERVALO]: document.getElementById('fSaidaIntervalo').value.trim(),
-    [COL.VOLTA_INTERVALO]: document.getElementById('fVoltaIntervalo').value.trim(),
-    [COL.SAIDA]: document.getElementById('fSaida').value.trim()
-  };
-}
-
-function validarDadosForm(dados) {
-  if (!dados[COL.NOME]) { Swal.fire('Atenção', 'Informe o nome.', 'warning'); return false; }
-  if (!dados[COL.EMAIL]) { Swal.fire('Atenção', 'Informe o e-mail.', 'warning'); return false; }
-  if (!dados[COL.EMAIL].toLowerCase().endsWith('@scseduca.com.br')) {
-    Swal.fire('Atenção', 'E-mail deve ser @scseduca.com.br', 'warning'); return false;
-  }
-  if (isEmailEscola(dados[COL.EMAIL])) {
-    Swal.fire('Bloqueado', 'E-mails de escola não são permitidos.', 'error'); return false;
-  }
-  if (!dados[COL.MATRICULA]) { Swal.fire('Atenção', 'Informe a matrícula.', 'warning'); return false; }
-  if (normalizarMatricula5(dados[COL.MATRICULA]).length < 5) {
-    Swal.fire('Atenção', 'Matrícula deve conter ao menos 5 dígitos.', 'warning'); return false;
-  }
-  return true;
-}
-
-function verificarDuplicataRigorosa(dados) {
-  const email = dados[COL.EMAIL].toLowerCase();
-  const mat5 = normalizarMatricula5(dados[COL.MATRICULA]);
-  console.log('[DUPLICATA] Verificando email:', email, '| mat5:', mat5);
-  return registros.find(r => {
-    const e = (r[COL.EMAIL] || '').trim().toLowerCase();
-    const m = normalizarMatricula5(r[COL.MATRICULA] || '');
-    return (e && e === email) || (m && m === mat5);
-  });
-}
-
-async function inserirRegistro(dados) {
-  console.log('[SALVAR] Inserindo novo registro...');
-  try {
-    const values = [[
-      dados[COL.NOME], dados[COL.EMAIL], dados[COL.MATRICULA], dados[COL.TELEFONE],
-      dados[COL.ESCOLA], dados[COL.PERIODO], dados[COL.ENTRADA], dados[COL.SAIDA_INTERVALO],
-      dados[COL.VOLTA_INTERVALO], dados[COL.SAIDA]
-    ]];
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${REGISTROS_ID}/values/A:J:append?valueInputOption=RAW&access_token=${accessToken}`;
-    const resp = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ values })
-    });
-    const result = await resp.json();
-    if (result.error) throw result.error;
-    console.log('[SALVAR] Registro inserido:', result);
-    Swal.fire('Sucesso', 'Cadastro criado com sucesso!', 'success').then(() => {
-      carregarRegistros().then(() => voltarVerificacao());
-    });
-  } catch (e) {
-    console.error('[SALVAR] Erro ao inserir:', e);
-    Swal.fire('Erro', 'Falha ao criar cadastro: ' + (e.message || e), 'error');
-  }
-}
-
-async function atualizarRegistro(dados) {
-  console.log('[SALVAR] Atualizando registro linha', linhaEncontrada);
-  if (!linhaEncontrada) {
-    Swal.fire('Erro', 'Linha do registro não identificada.', 'error');
-    return;
-  }
-  try {
-    const values = [[
-      dados[COL.NOME], dados[COL.EMAIL], dados[COL.MATRICULA], dados[COL.TELEFONE],
-      dados[COL.ESCOLA], dados[COL.PERIODO], dados[COL.ENTRADA], dados[COL.SAIDA_INTERVALO],
-      dados[COL.VOLTA_INTERVALO], dados[COL.SAIDA]
-    ]];
-    const range = `A${linhaEncontrada}:J${linhaEncontrada}`;
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${REGISTROS_ID}/values/${range}?valueInputOption=RAW&access_token=${accessToken}`;
-    const resp = await fetch(url, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ values })
-    });
-    const result = await resp.json();
-    if (result.error) throw result.error;
-    console.log('[SALVAR] Registro atualizado:', result);
-    Swal.fire('Sucesso', 'Cadastro atualizado com sucesso!', 'success').then(() => {
-      carregarRegistros().then(() => voltarVerificacao());
-    });
-  } catch (e) {
-    console.error('[SALVAR] Erro ao atualizar:', e);
-    Swal.fire('Erro', 'Falha ao atualizar cadastro: ' + (e.message || e), 'error');
-  }
-}
-
-// ===== UTIL =====
-function showPage(id) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
-
-window.onload = initGoogle;
-</script>
+      log('Aplicação pronta.', 'ok');
+    })();
+  </script>
 </body>
 </html>
